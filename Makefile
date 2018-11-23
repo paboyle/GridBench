@@ -8,15 +8,19 @@ CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3
 DATA      := arch/avx512/static_data.cc
 
 #AVX2 options
-#CXXFLAGS  := -DAVX2 -O3 
+#CXXFLAGS  := -DAVX2 -O3 -mavx2
+#DATA      := arch/avx/static_data.cc
+
+#AVX options
+#CXXFLAGS  := -DAVX -O3 -mavx
 #DATA      := arch/avx/static_data.cc
 
 #SSE4 options
-#CXXFLAGS  := -DAVX2 -O3 
+#CXXFLAGS  := -DSSE4 -O3 -msse4.2 
 #DATA      := arch/avx/static_data.cc
 
 #Generic options
-#CXXFLAGS  := -DGEN -O3 
+#CXXFLAGS  := -DGEN -O3
 #DATA      := arch/avx/static_data.cc
 
 LDLIBS    := -lm
