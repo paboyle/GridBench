@@ -1,23 +1,35 @@
 
-CXX       := mpicxx-openmpi-devel-clang60
-CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 
+SIMPLEDATA := arch/sse/static_data.cc
 
-#### TODO ### Implement other SIMD targets and verify
-#CXXFLAGS  := -DAVX2 -mavx2 -O3 
-#CXXFLAGS  := -DAVX -mavx -O3 
-#CXXFLAGS  := -DSSE4 -msse4 -O3 
+CXX       := mpicxx-openmpi-devel-clang60
+
+#AVX512 options
+CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 
+DATA      := arch/avx512/static_data.cc
+
+#AVX2 options
+#CXXFLAGS  := -DAVX2 -O3 
+#DATA      := arch/avx/static_data.cc
+
+#SSE4 options
+#CXXFLAGS  := -DAVX2 -O3 
+#DATA      := arch/avx/static_data.cc
+
+#Generic options
+#CXXFLAGS  := -DGEN -O3 
+#DATA      := arch/avx/static_data.cc
 
 LDLIBS    := -lm
 LDFLAGS   := 
 
-all: bench
+all: bench bench_simple
 
-bench: bench.cpp static_data.o  WilsonKernelsHand.h
-	$(CXX) $(CXXFLAGS) bench.cpp static_data.o $(LDLIBS) $(LDFLAGS) -o bench
+bench: bench.cpp $(DATA)  WilsonKernelsHand.h
+	$(CXX) $(CXXFLAGS) bench.cpp $(DATA) $(LDLIBS) $(LDFLAGS) -o bench
 
-static_data.o: arch/avx512/static_data.cc
-	$(CXX) $(CXXFLAGS) -c  arch/avx512/static_data.cc -o static_data.o
+bench_simple: bench_simple.cpp $(SIMPLEDATA) dslash_simple.h
+	$(CXX) $(CXXFLAGS) bench_simple.cpp $(SIMPLEDATA) $(LDLIBS) $(LDFLAGS) -o bench_simple
 
 clean:
-	rm -f $(target) $(objects) $(depfile) *~
+	rm -f bench bench_simple
 
