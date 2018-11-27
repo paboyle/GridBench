@@ -24,16 +24,16 @@ SSE_LDFLAGS   := $(shell ${SSE_CFG} --ldflags) -L$(GRIDBASE)-sse/lib
 all: avx512 avx sse
 
 avx512:
-	$(AVX512_CXX) TableGenerate.cpp $(AVX512_CXXFLAGS) $(AVX512_LIBS) $(AVX512_LDFLAGS) -o TableGenerate
+	$(AVX512_CXX) TableGenerate.cc $(AVX512_CXXFLAGS) $(AVX512_LIBS) $(AVX512_LDFLAGS) -o TableGenerate
 	sde -skx -- ./TableGenerate 
 	mv static_data.h static_data.cc arch/avx512/
 
 avx:
-	$(AVX_CXX) TableGenerate.cpp $(AVX_CXXFLAGS) $(AVX_LIBS) $(AVX_LDFLAGS) -o TableGenerate
-	sde -skx -- ./TableGenerate 
+	$(AVX_CXX) TableGenerate.cc $(AVX_CXXFLAGS) $(AVX_LIBS) $(AVX_LDFLAGS) -o TableGenerate
+	sde -hsw -- ./TableGenerate 
 	mv static_data.h static_data.cc arch/avx/
 
 sse:
-	$(SSE_CXX) TableGenerate.cpp $(SSE_CXXFLAGS) $(SSE_LIBS) $(SSE_LDFLAGS) -o TableGenerate
-	sde -skx -- ./TableGenerate 
+	$(SSE_CXX) TableGenerate.cc $(SSE_CXXFLAGS) $(SSE_LIBS) $(SSE_LDFLAGS) -o TableGenerate
+	sde -ivb -- ./TableGenerate 
 	mv static_data.h static_data.cc arch/sse/

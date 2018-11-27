@@ -1,5 +1,5 @@
 #include <stdint.h>
-const uint64_t nsite = 4096 ; 
+const uint64_t nsite = 2048 ; 
 const int Ls = 8 ; 
 extern double   U_static[] ; 
 extern double   Phi_static[] ; 

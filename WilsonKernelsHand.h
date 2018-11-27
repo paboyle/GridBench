@@ -379,11 +379,12 @@ void dslash_kernel(Simd *Up,Simd *Psip,Simd *Phip,uint64_t *nbr,uint64_t nsite,u
 
   Simd complex_i;  vsplat(complex_i, S(0.0, 1.0));
 
-  HAND_DECLARATIONS(ignore);
-
-  int offset,perm;
-
+#pragma omp parallel for
   for(uint64_t ssite=0;ssite<nsite;ssite++){
+
+    HAND_DECLARATIONS(ignore);
+
+    int offset,perm;
     uint64_t sU = ssite;
     uint64_t ss = sU*Ls;
     for(uint64_t s=0;s<Ls;s++){
