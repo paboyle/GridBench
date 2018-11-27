@@ -13,11 +13,11 @@ AVX512_DATA      := arch/avx512/static_data.cc
 
 #AVX2 options
 AVX2_CXXFLAGS  := -DAVX2 -O3 -mavx2 -mfma $(OMP)
-AVX2_DATA      := arch/avx/static_data.cc
+AVX2_DATA      :=  arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 
 #AVX options
 AVX_CXXFLAGS  := -DAVX1 -O3 -mavx $(OMP)
-AVX_DATA      := arch/avx/static_data.cc
+AVX_DATA      := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 
 #SSE4 options
 SSE_CXXFLAGS  := -DSSE4 -O3 -msse4.2  $(OMP)
