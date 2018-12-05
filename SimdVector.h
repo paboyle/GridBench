@@ -12,6 +12,9 @@
 #if defined AVX512
 #include "arch/avx512/Simd_avx512.h"
 #endif
+#if defined VGPU
+#include "arch/gpu/Simd_gpu_vec.h"
+#endif
 
 //////////////////////////////////////
 // demote a vector to real type
@@ -59,7 +62,7 @@ class Simd {
   typedef Vector_type vector_type;
   typedef Scalar_type scalar_type;
 
-  static inline constexpr int Nsimd(void) {
+  static accelerator_inline constexpr int Nsimd(void) {
     return sizeof(Vector_type) / sizeof(Scalar_type);
   }
 
@@ -87,7 +90,7 @@ class Simd {
   template <typename S = Scalar_type>
   Simd(const typename std::enable_if<is_complex<S>::value, S>::type a) {
     vsplat(*this, a);
-  };
+  }
 
   Simd(const RealD a) { vsplat(*this, Scalar_type(a)); };
 
@@ -95,66 +98,66 @@ class Simd {
   // mac, mult, sub, add, adj
   ///////////////////////////////////////////////
 
-  // FIXME -- alias this to an inline MAC struct.
-  friend inline void mac(Simd *__restrict__ y,
+  // FIXME -- alias this to an accelerator_inline MAC struct.
+  friend accelerator_inline void mac(Simd *__restrict__ y,
                          const Simd *__restrict__ a,
                          const Simd *__restrict__ x) {
     *y = (*a) * (*x) + (*y);
   };
 
-  friend inline void mult(Simd *__restrict__ y,
+  friend accelerator_inline void mult(Simd *__restrict__ y,
                           const Simd *__restrict__ l,
                           const Simd *__restrict__ r) {
     *y = (*l) * (*r);
   }
 
-  friend inline void sub(Simd *__restrict__ y,
+  friend accelerator_inline void sub(Simd *__restrict__ y,
                          const Simd *__restrict__ l,
                          const Simd *__restrict__ r) {
     *y = (*l) - (*r);
   }
-  friend inline void add(Simd *__restrict__ y,
+  friend accelerator_inline void add(Simd *__restrict__ y,
                          const Simd *__restrict__ l,
                          const Simd *__restrict__ r) {
     *y = (*l) + (*r);
   }
-  friend inline void mac(Simd *__restrict__ y,
+  friend accelerator_inline void mac(Simd *__restrict__ y,
                          const Scalar_type *__restrict__ a,
                          const Simd *__restrict__ x) {
     *y = (*a) * (*x) + (*y);
   };
-  friend inline void mult(Simd *__restrict__ y,
+  friend accelerator_inline void mult(Simd *__restrict__ y,
                           const Scalar_type *__restrict__ l,
                           const Simd *__restrict__ r) {
     *y = (*l) * (*r);
   }
-  friend inline void sub(Simd *__restrict__ y,
+  friend accelerator_inline void sub(Simd *__restrict__ y,
                          const Scalar_type *__restrict__ l,
                          const Simd *__restrict__ r) {
     *y = (*l) - (*r);
   }
-  friend inline void add(Simd *__restrict__ y,
+  friend accelerator_inline void add(Simd *__restrict__ y,
                          const Scalar_type *__restrict__ l,
                          const Simd *__restrict__ r) {
     *y = (*l) + (*r);
   }
 
-  friend inline void mac(Simd *__restrict__ y,
+  friend accelerator_inline void mac(Simd *__restrict__ y,
                          const Simd *__restrict__ a,
                          const Scalar_type *__restrict__ x) {
     *y = (*a) * (*x) + (*y);
   };
-  friend inline void mult(Simd *__restrict__ y,
+  friend accelerator_inline void mult(Simd *__restrict__ y,
                           const Simd *__restrict__ l,
                           const Scalar_type *__restrict__ r) {
     *y = (*l) * (*r);
   }
-  friend inline void sub(Simd *__restrict__ y,
+  friend accelerator_inline void sub(Simd *__restrict__ y,
                          const Simd *__restrict__ l,
                          const Scalar_type *__restrict__ r) {
     *y = (*l) - (*r);
   }
-  friend inline void add(Simd *__restrict__ y,
+  friend accelerator_inline void add(Simd *__restrict__ y,
                          const Simd *__restrict__ l,
                          const Scalar_type *__restrict__ r) {
     *y = (*l) + (*r);
@@ -164,42 +167,42 @@ class Simd {
   ///////////////////////
   // Vstore
   ///////////////////////
-  friend inline void vstore(const Simd &ret, Scalar_type *a) {
+  friend accelerator_inline void vstore(const Simd &ret, Scalar_type *a) {
     binary<void>(ret.v, (RealD *)a, VstoreSIMD());
   }
 
   ////////////////////////////
   // operator scalar * simd
   ////////////////////////////
-  friend inline Simd operator*(const Scalar_type &a, Simd b) {
+  friend accelerator_inline Simd operator*(const Scalar_type &a, Simd b) {
     Simd va;
     vsplat(va, a);
     return va * b;
   }
-  friend inline Simd operator*(Simd b, const Scalar_type &a) {
+  friend accelerator_inline Simd operator*(Simd b, const Scalar_type &a) {
     return a * b;
   }
 
   ///////////////////////
   // Unary negation
   ///////////////////////
-  friend inline Simd operator-(const Simd &r) {
+  friend accelerator_inline Simd operator-(const Simd &r) {
     Simd ret;
     vzero(ret);
     ret = ret - r;
     return ret;
   }
   // *=,+=,-= operators
-  inline Simd &operator*=(const Simd &r) {
+  accelerator_inline Simd &operator*=(const Simd &r) {
     *this = (*this) * r;
     return *this;
     // return (*this)*r; ?
   }
-  inline Simd &operator+=(const Simd &r) {
+  accelerator_inline Simd &operator+=(const Simd &r) {
     *this = *this + r;
     return *this;
   }
-  inline Simd &operator-=(const Simd &r) {
+  accelerator_inline Simd &operator-=(const Simd &r) {
     *this = *this - r;
     return *this;
   }
@@ -209,19 +212,19 @@ class Simd {
   // all subtypes; may not be a good assumption, but could
   // add the vector width as a template param for BG/Q for example
   ////////////////////////////////////////////////////////////////////
-  friend inline void permute0(Simd &y, Simd b) {
+  friend accelerator_inline void permute0(Simd &y, Simd b) {
     y.v = Permute::Permute0(b.v);
   }
-  friend inline void permute1(Simd &y, Simd b) {
+  friend accelerator_inline void permute1(Simd &y, Simd b) {
     y.v = Permute::Permute1(b.v);
   }
-  friend inline void permute2(Simd &y, Simd b) {
+  friend accelerator_inline void permute2(Simd &y, Simd b) {
     y.v = Permute::Permute2(b.v);
   }
-  friend inline void permute3(Simd &y, Simd b) {
+  friend accelerator_inline void permute3(Simd &y, Simd b) {
     y.v = Permute::Permute3(b.v);
   }
-  friend inline void permute(Simd &y, Simd b, int perm) {
+  friend accelerator_inline void permute(Simd &y, Simd b, int perm) {
 
          if(perm==3) permute3(y, b);
     else if(perm==2) permute2(y, b);
@@ -231,10 +234,10 @@ class Simd {
   
 };  // end of Simd class definition
 
-inline void permute(ComplexD &y,ComplexD b, int perm) {  y=b; }
-inline void permute(ComplexF &y,ComplexF b, int perm) {  y=b; }
-inline void permute(RealD &y,RealD b, int perm) {  y=b; }
-inline void permute(RealF &y,RealF b, int perm) {  y=b; }
+accelerator_inline void permute(ComplexD &y,ComplexD b, int perm) {  y=b; }
+accelerator_inline void permute(ComplexF &y,ComplexF b, int perm) {  y=b; }
+accelerator_inline void permute(RealD &y,RealD b, int perm) {  y=b; }
+accelerator_inline void permute(RealF &y,RealF b, int perm) {  y=b; }
 
 
 ///////////////////////
@@ -243,13 +246,13 @@ inline void permute(RealF &y,RealF b, int perm) {  y=b; }
 
 // this is only for the complex version pass real and im parts
 template <class S, class V, IfComplex<S> = 0, class ABtype>
-inline void vsplat(Simd<S, V> &ret, ABtype a, ABtype b) {
+accelerator_inline void vsplat(Simd<S, V> &ret, ABtype a, ABtype b) {
   ret.v = binary<V>(a, b, VsplatSIMD());
 }
 
 // overload if complex
 template <class S, class V>
-inline void vsplat(Simd<S, V> &ret, EnableIf<is_complex<S>, S> c) {
+accelerator_inline void vsplat(Simd<S, V> &ret, EnableIf<is_complex<S>, S> c) {
   vsplat(ret, real(c), imag(c));
 }
 
@@ -259,30 +262,30 @@ inline void vsplat(Simd<S, V> &ret, EnableIf<is_complex<S>, S> c) {
 ///////////////////////////////////////////////
 // For complex types
 template <class S, class V, IfComplex<S> = 0>
-inline void vone(Simd<S, V> &ret) {
+accelerator_inline void vone(Simd<S, V> &ret) {
   vsplat(ret, S(1.0, 0.0));
 }
 template <class S, class V, IfComplex<S> = 0>
-inline void vzero(Simd<S, V> &ret) {
+accelerator_inline void vzero(Simd<S, V> &ret) {
   vsplat(ret, S(0.0, 0.0));
 }  // use xor?
 template <class S, class V, IfComplex<S> = 0>
-inline void vcomplex_i(Simd<S, V> &ret) {
+accelerator_inline void vcomplex_i(Simd<S, V> &ret) {
   vsplat(ret, S(0.0, 1.0));
 }
 // if not complex overload here
 template <class S, class V, IfReal<S> = 0>
-inline void vone(Simd<S, V> &ret) {
+accelerator_inline void vone(Simd<S, V> &ret) {
   vsplat(ret, S(1.0));
 }
 template <class S, class V, IfReal<S> = 0>
-inline void vzero(Simd<S, V> &ret) {
+accelerator_inline void vzero(Simd<S, V> &ret) {
   vsplat(ret, S(0.0));
 }
 
 // For integral types
 template <class S, class V>
-inline void zeroit(Simd<S, V> &z) {
+accelerator_inline void zeroit(Simd<S, V> &z) {
   vzero(z);
 }
 
@@ -290,11 +293,11 @@ inline void zeroit(Simd<S, V> &z) {
 // Vstream
 ///////////////////////
 template <class S, class V, IfReal<S> = 0>
-inline void vstream(Simd<S, V> &out, const Simd<S, V> &in) {
+accelerator_inline void vstream(Simd<S, V> &out, const Simd<S, V> &in) {
   binary<void>((S *)&out.v, in.v, VstreamSIMD());
 }
 template <class S, class V, IfComplex<S> = 0>
-inline void vstream(Simd<S, V> &out, const Simd<S, V> &in) {
+accelerator_inline void vstream(Simd<S, V> &out, const Simd<S, V> &in) {
   typedef typename S::value_type T;
   binary<void>((T *)&out.v, in.v, VstreamSIMD());
 }
@@ -303,14 +306,14 @@ inline void vstream(Simd<S, V> &out, const Simd<S, V> &in) {
 // Arithmetic operator overloads +,-,*
 ////////////////////////////////////
 template <class S, class V>
-inline Simd<S, V> operator+(Simd<S, V> a, Simd<S, V> b) {
+accelerator_inline Simd<S, V> operator+(Simd<S, V> a, Simd<S, V> b) {
   Simd<S, V> ret;
   ret.v = binary<V>(a.v, b.v, SumSIMD());
   return ret;
 };
 
 template <class S, class V>
-inline Simd<S, V> operator-(Simd<S, V> a, Simd<S, V> b) {
+accelerator_inline Simd<S, V> operator-(Simd<S, V> a, Simd<S, V> b) {
   Simd<S, V> ret;
   ret.v = binary<V>(a.v, b.v, SubSIMD());
   return ret;
@@ -318,7 +321,7 @@ inline Simd<S, V> operator-(Simd<S, V> a, Simd<S, V> b) {
 
 // Distinguish between complex types and others
 template <class S, class V, IfComplex<S> = 0>
-inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
+accelerator_inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
   Simd<S, V> ret;
   ret.v = binary<V>(a.v, b.v, MultComplexSIMD());
   return ret;
@@ -326,7 +329,7 @@ inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
 
 // Real/Integer types
 template <class S, class V, IfNotComplex<S> = 0>
-inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
+accelerator_inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
   Simd<S, V> ret;
   ret.v = binary<V>(a.v, b.v, MultSIMD());
   return ret;
@@ -337,13 +340,13 @@ inline Simd<S, V> operator*(Simd<S, V> a, Simd<S, V> b) {
 // Conjugate
 ///////////////////////
 template <class S, class V, IfComplex<S> = 0>
-inline Simd<S, V> conjugate(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> conjugate(const Simd<S, V> &in) {
   Simd<S, V> ret;
   ret.v = unary<V>(in.v, ConjSIMD());
   return ret;
 }
 template <class S, class V, IfNotComplex<S> = 0>
-inline Simd<S, V> conjugate(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> conjugate(const Simd<S, V> &in) {
   return in;  // for real objects
 }
 
@@ -351,17 +354,17 @@ inline Simd<S, V> conjugate(const Simd<S, V> &in) {
 // timesMinusI
 ///////////////////////
 template <class S, class V, IfComplex<S> = 0>
-inline void timesMinusI(Simd<S, V> &ret, const Simd<S, V> &in) {
+accelerator_inline void timesMinusI(Simd<S, V> &ret, const Simd<S, V> &in) {
   ret.v = binary<V>(in.v, ret.v, TimesMinusISIMD());
 }
 template <class S, class V, IfComplex<S> = 0>
-inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
   Simd<S, V> ret;
   timesMinusI(ret, in);
   return ret;
 }
 template <class S, class V, IfNotComplex<S> = 0>
-inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
   return in;
 }
 
@@ -369,17 +372,17 @@ inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
 // timesI
 ///////////////////////
 template <class S, class V, IfComplex<S> = 0>
-inline void timesI(Simd<S, V> &ret, const Simd<S, V> &in) {
+accelerator_inline void timesI(Simd<S, V> &ret, const Simd<S, V> &in) {
   ret.v = binary<V>(in.v, ret.v, TimesISIMD());
 }
 template <class S, class V, IfComplex<S> = 0>
-inline Simd<S, V> timesI(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> timesI(const Simd<S, V> &in) {
   Simd<S, V> ret;
   timesI(ret, in);
   return ret;
 }
 template <class S, class V, IfNotComplex<S> = 0>
-inline Simd<S, V> timesI(const Simd<S, V> &in) {
+accelerator_inline Simd<S, V> timesI(const Simd<S, V> &in) {
   return in;
 }
 
@@ -388,8 +391,13 @@ inline Simd<S, V> timesI(const Simd<S, V> &in) {
 ///////////////////////////////
 typedef Simd<float , SIMD_Ftype> vRealF;
 typedef Simd<double, SIMD_Dtype> vRealD;
-typedef Simd<std::complex<float>, SIMD_Ftype> vComplexF;
-typedef Simd<std::complex<double>, SIMD_Dtype> vComplexD;
+#ifdef VGPU
+typedef Simd<complex<float>   , SIMD_CFtype> vComplexF;
+typedef Simd<complex<double>  , SIMD_CDtype> vComplexD;
+#else
+typedef Simd<complex<float>   , SIMD_Ftype> vComplexF;
+typedef Simd<complex<double>  , SIMD_Dtype> vComplexD;
+#endif
 
 static_assert(sizeof(SIMD_Ftype) == sizeof(SIMD_Dtype), "SIMD vector lengths incorrect");
 

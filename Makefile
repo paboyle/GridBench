@@ -27,7 +27,22 @@ SSE_DATA      := arch/sse/static_data.cc
 GENERIC_CXXFLAGS  := -DGEN -O3 -DGEN_SIMD_WIDTH=16 $(OMP)
 GENERIC_DATA      := arch/sse/static_data.cc
 
+################################################################################
+# NVCC and gpu ; 512 bit vector coalescing
+################################################################################
 
+# VOLTA
+#GPUARCH    := --relocatable-device-code=true -gencode arch=compute_70,code=sm_70 
+
+# PASCAL
+GPUARCH    := --relocatable-device-code=true -gencode arch=compute_60,code=sm_60 
+
+GPUCC      := nvcc 
+GPULINK    := nvcc $(GPUARCH)
+GPU_CXXFLAGS  := -x cu -DVGPU -DGEN_SIMD_WIDTH=64 -I. -O3 -ccbin g++ -std=c++11 --expt-relaxed-constexpr --expt-extended-lambda $(GPUARCH)  -Xcompiler -fno-strict-aliasing
+GPU_LDFLAGS  := -link -ccbin g++
+GPU_DATA      := arch/avx512/static_data.cc
+################################################################################
 LDLIBS    := -lm
 LDFLAGS   := 
 
@@ -47,6 +62,12 @@ bench.sse: bench.cc $(SSE_DATA)  WilsonKernelsHand.h Makefile
 
 bench.gen: bench.cc $(GENERIC_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(GENERIC_CXXFLAGS) bench.cc $(GENERIC_DATA) $(LDLIBS) $(LDFLAGS) -o bench.gen
+
+#	nvcc -x cu -DVGPU -DGEN_SIMD_WIDTH=64 -I. -O3 -ccbin g++ -std=c++11 -Xcompiler -Wno-deprecated-gpu-targets --expt-relaxed-constexpr --expt-extended-lambda --relocatable-device-code=true -gencode arch=compute_60,code=sm_60  -Xcompiler -fno-strict-aliasing -c bench.cc -o bench.gpu.o 
+bench.gpu: bench.cc $(GPU_DATA)  WilsonKernelsHand.h Makefile
+	$(GPUCC) $(GPU_CXXFLAGS) -c bench.cc -o bench.gpu.o
+	$(GPUCC) $(GPU_CXXFLAGS) -c $(GPU_DATA) -o data.gpu.o
+	$(GPULINK) $(GPU_LDFLAGS) bench.gpu.o data.gpu.o -o bench.gpu $(LDLIBS) $(LDFLAGS)
 
 bench.simple: bench_simple.cc $(SIMPLEDATA) dslash_simple.h Makefile
 	$(CXX) $(CXXFLAGS) bench_simple.cc $(SIMPLEDATA) $(LDLIBS) $(LDFLAGS) -o bench.simple

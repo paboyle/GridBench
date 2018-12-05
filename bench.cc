@@ -10,6 +10,15 @@
 #include <cassert>
 
 #include "Simd.h"
+#include "WilsonKernelsHand.h"
+
+///////////////////////////////////////
+// Preinitialised arrays
+///////////////////////////////////////
+
+#ifdef VGPU
+#include "arch/avx512/static_data.h" // 64 Byte layout
+#endif
 
 #ifdef GEN
 #include "arch/sse/static_data.h"
@@ -26,8 +35,6 @@
 #ifdef AVX512
 #include "arch/avx512/static_data.h"
 #endif
-
-#include "WilsonKernelsHand.h"
 
 
 #define  FMT std::dec
