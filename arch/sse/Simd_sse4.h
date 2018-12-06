@@ -79,15 +79,15 @@ Author: neo <cossu@post.kek.jp>
 
   struct Vstore{
     //Float 
-    inline void operator()(__m128 a, float* F){
-      _mm_store_ps(F,a);
+    inline void operator()(__m128 a, void* F){
+      _mm_store_ps((float *)F,a);
     }
     //Double
-    inline void operator()(__m128d a, double* D){
-      _mm_store_pd(D,a);
+    inline void operator()(__m128d a, void* D){
+      _mm_store_pd((double *)D,a);
     }
     //Integer
-    inline void operator()(__m128i a, Integer* I){
+    inline void operator()(__m128i a, void* I){
       _mm_store_si128((__m128i *)I,a);
     }
 

@@ -383,7 +383,9 @@ void dslash_kernel_cpu(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsit
 
   Simd complex_i;  vsplat(complex_i, S(0.0, 1.0));
 
+#ifdef OMP
 #pragma omp parallel for
+#endif
   for(uint64_t ssite=0;ssite<nsite;ssite++){
 
     HAND_DECLARATIONS(Simd);
