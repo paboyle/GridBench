@@ -168,7 +168,7 @@ class Simd {
   // Vstore
   ///////////////////////
   friend accelerator_inline void vstore(const Simd &ret, Scalar_type *a) {
-    binary<void>(ret.v, (RealD *)a, VstoreSIMD());
+    binary<void>(ret.v, (void *)a, VstoreSIMD());
   }
 
   ////////////////////////////

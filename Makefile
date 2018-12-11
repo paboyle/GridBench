@@ -1,27 +1,36 @@
 
 SIMPLEDATA := arch/sse/static_data.cc
 
-#OMP:=-fopenmp -std=c++11
-OMP:=-std=c++11
+#OMP:=-fopenmp -std=c++11 -DOMP
+OMP:=-std=c++11 -O3
 
-CXX       := mpicxx-openmpi-devel-clang40
-CXXFLAGS  := -O3 $(OMP)
+#CXX       := mpicxx-openmpi-devel-clang40
+#CXX       := mpiicpc
+CXX       := clang++
+CXXFLAGS  := $(OMP)
 
-#AVX512 options
-AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
-AVX512_DATA      := arch/avx512/static_data.cc
-
-#AVX2 options
-AVX2_CXXFLAGS  := -DAVX2 -O3 -mavx2 -mfma $(OMP)
-AVX2_DATA      :=  arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
-
-#AVX options
-AVX_CXXFLAGS  := -DAVX1 -O3 -mavx $(OMP)
+AVX512_DATA   := arch/avx512/static_data.cc
+AVX2_DATA     := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 AVX_DATA      := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
-
-#SSE4 options
-SSE_CXXFLAGS  := -DSSE4 -O3 -msse4.2  $(OMP)
 SSE_DATA      := arch/sse/static_data.cc
+
+#############################################
+# Intel
+#############################################
+#AVX512_CXXFLAGS  := -DAVX512 -xcore-avx512 $(OMP)
+#AVX2_CXXFLAGS    := -DAVX2  -march=core-avx2 -xcore-avx2 $(OMP)
+#AVX_CXXFLAGS     := -DAVX1  -mavx -xavx $(OMP)
+#SSE_CXXFLAGS     := -DSSE4  -msse4.2 -xsse4.2  $(OMP)
+
+#############################################
+# CLANG
+#############################################
+AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
+AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
+AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
+SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
+
+
 
 #Generic options
 GENERIC_CXXFLAGS  := -DGEN -O3 -DGEN_SIMD_WIDTH=16 $(OMP)

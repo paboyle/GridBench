@@ -24,7 +24,9 @@ void dslash_kernel(Complex * RESTRICT Up,Complex * RESTRICT Psip,Complex * RESTR
   Complex * RESTRICT Phi= (Complex *)Phip;
   Complex complex_i(0.0,1.0);
 
+#ifdef OMP
 #pragma omp parallel for
+#endif 
   for(uint64_t ssite=0;ssite<nsite;ssite++){
     uint64_t site = ssite;
     Complex sitePsi [4][Nc];
@@ -160,7 +162,9 @@ void dslash_kernel_unroll(Complex * RESTRICT Up,Complex * RESTRICT Psip,Complex 
   Complex * RESTRICT Phi= (Complex *)Phip;
   Complex complex_i(0.0,1.0);
 
+#ifdef OMP
 #pragma omp parallel for
+#endif
   for(uint64_t ssite=0;ssite<nsite;ssite++){
     uint64_t site = ssite;
     Complex sitePsi [4][Nc];

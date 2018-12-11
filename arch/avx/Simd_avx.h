@@ -51,15 +51,15 @@
 
   struct Vstore{
     //Float
-    inline void operator()(__m256 a, float* F){
-      _mm256_store_ps(F,a);
+    inline void operator()(__m256 a, void* F){
+      _mm256_store_ps((float *)F,a);
     }
     //Double
-    inline void operator()(__m256d a, double* D){
-      _mm256_store_pd(D,a);
+    inline void operator()(__m256d a, void* D){
+      _mm256_store_pd((double *)D,a);
     }
     //Integer
-    inline void operator()(__m256i a, Integer* I){
+    inline void operator()(__m256i a, void* I){
       _mm256_store_si256((__m256i*)I,a);
     }
 

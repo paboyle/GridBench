@@ -12,6 +12,13 @@
 #include "Simd.h"
 #include "WilsonKernelsHand.h"
 
+
+#ifdef __x86_64__
+#define __SSC_MARK(A) __asm__ __volatile__ ("movl %0, %%ebx; .byte 0x64, 0x67, 0x90 " ::"i"(A):"%ebx")
+#else
+#define __SSC_MARK(A)
+#endif
+
 ///////////////////////////////////////
 // Preinitialised arrays
 ///////////////////////////////////////
@@ -68,6 +75,7 @@ int main(int argc, char* argv[])
   int nrep=500; // cache warm
   TimePoint start = Clock::now();
   for(int i=0;i<nrep;i++){
+    __SSC_MARK(0x000);
     dslash_kernel<vComplexD>((vComplexD *)&U[0],
 			     (vComplexD *)&Psi[0],
 			     (vComplexD *)&Phi[0],
@@ -75,6 +83,7 @@ int main(int argc, char* argv[])
 			     nsite,
 			     Ls,
 			     &prm[0]);
+    __SSC_MARK(0x001);
   }
   elapsed = std::chrono::duration_cast<Usecs>(Clock::now()-start);   
   std::cout << std::endl;

@@ -23,12 +23,12 @@
 
   struct Vstore{
     //Float 
-    inline void operator()(__m512 a, float* F){
-      _mm512_store_ps(F,a);
+    inline void operator()(__m512 a, void* F){
+      _mm512_store_ps((float *)F,a);
     }
     //Double
-    inline void operator()(__m512d a, double* D){
-      _mm512_store_pd(D,a);
+    inline void operator()(__m512d a, void* D){
+      _mm512_store_pd((double *)D,a);
     }
   };
 
