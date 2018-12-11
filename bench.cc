@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 
   Usecs elapsed;
   double flops = 1320.0*vol;
-  int nrep=300; // cache warm
+  int nrep=500; // cache warm
   TimePoint start = Clock::now();
   for(int i=0;i<nrep;i++){
     dslash_kernel<vComplexD>((vComplexD *)&U[0],
