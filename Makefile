@@ -6,7 +6,7 @@ OMP:=-std=c++11 -O3
 
 #CXX       := mpicxx-openmpi-devel-clang40
 #CXX       := mpiicpc
-CXX       := clang++
+CXX       := g++
 CXXFLAGS  := $(OMP)
 
 AVX512_DATA   := arch/avx512/static_data.cc
@@ -25,11 +25,18 @@ SSE_DATA      := arch/sse/static_data.cc
 #############################################
 # CLANG
 #############################################
+#AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
+#AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
+#AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
+#SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
+
+#############################################
+# G++
+#############################################
 AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
 AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
-
 
 
 #Generic options

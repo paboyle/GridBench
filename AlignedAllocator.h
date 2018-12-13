@@ -35,12 +35,29 @@ public:
   pointer allocate(size_type __n, const void* _p= 0)
   { 
     size_type bytes = __n*sizeof(_Tp);
+    pointer ptr;
+#ifdef VGPU
+    ////////////////////////////////////
+    // Unified (managed) memory
+    ////////////////////////////////////
+    auto err = cudaMallocManaged((void **)&ptr,bytes);
+    if( err != cudaSuccess ) {
+      ptr = (_Tp *) NULL;
+      std::cerr << " cudaMallocManaged failed for " << bytes<<" bytes " <<cudaGetErrorString(err)<< std::endl;
+      assert(0);
+    }
+#else 
     pointer ptr = (_Tp *) _mm_malloc(bytes,GRID_ALLOC_ALIGN);
+#endif
     return ptr;
   }
 
   void deallocate(pointer __p, size_type __n) { 
+#ifdef VGPU
+    cudaFree((void *)__p);
+#else
     _mm_free((void *)__p); 
+#endif
   }
   void construct(pointer __p, const _Tp& __val) { };
   void construct(pointer __p) { };
