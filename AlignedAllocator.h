@@ -1,9 +1,12 @@
 #pragma once
 
+
+#ifndef VGPU
 #if defined(__INTEL_COMPILER)
 #include <malloc.h>
 #else
 #include <mm_malloc.h>
+#endif 
 #endif 
 
 #include <vector>
@@ -35,8 +38,8 @@ public:
   pointer allocate(size_type __n, const void* _p= 0)
   { 
     size_type bytes = __n*sizeof(_Tp);
-    pointer ptr;
 #ifdef VGPU
+    pointer ptr;
     ////////////////////////////////////
     // Unified (managed) memory
     ////////////////////////////////////
@@ -47,7 +50,11 @@ public:
       assert(0);
     }
 #else 
+#ifdef GEN
+    pointer ptr = (_Tp *) malloc(bytes);
+#else
     pointer ptr = (_Tp *) _mm_malloc(bytes,GRID_ALLOC_ALIGN);
+#endif
 #endif
     return ptr;
   }
@@ -56,7 +63,11 @@ public:
 #ifdef VGPU
     cudaFree((void *)__p);
 #else
+#ifdef GEN
+    free((void *)__p); 
+#else
     _mm_free((void *)__p); 
+#endif
 #endif
   }
   void construct(pointer __p, const _Tp& __val) { };

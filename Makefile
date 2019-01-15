@@ -6,7 +6,8 @@ OMP:=-std=c++11 -O3
 
 #CXX       := mpicxx-openmpi-devel-clang40
 #CXX       := mpiicpc
-CXX       := g++
+#CXX       := g++
+CXX       := mpicxx
 CXXFLAGS  := $(OMP)
 
 AVX512_DATA   := arch/avx512/static_data.cc
@@ -25,18 +26,18 @@ SSE_DATA      := arch/sse/static_data.cc
 #############################################
 # CLANG
 #############################################
-#AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
-#AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
-#AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
-#SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
-
-#############################################
-# G++
-#############################################
 AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
 AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
+
+#############################################
+# G++
+#############################################
+#AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OMP)
+#AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
+#AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
+#SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
 
 
 #Generic options
@@ -48,10 +49,10 @@ GENERIC_DATA      := arch/sse/static_data.cc
 ################################################################################
 
 # VOLTA
-#GPUARCH    := --relocatable-device-code=true -gencode arch=compute_70,code=sm_70 
+GPUARCH    := --relocatable-device-code=true -gencode arch=compute_70,code=sm_70 
 
 # PASCAL
-GPUARCH    := --relocatable-device-code=true -gencode arch=compute_60,code=sm_60 
+#GPUARCH    := --relocatable-device-code=true -gencode arch=compute_60,code=sm_60 
 
 GPUCC      := nvcc 
 GPULINK    := nvcc $(GPUARCH)
