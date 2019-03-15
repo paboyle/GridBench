@@ -39,10 +39,19 @@ SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
 #AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 #SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
 
+#############################################
+# TriSYCL
+#############################################
+CL_CXX := g++-mp-7
+CL_CXXFLAGS := -I/Users/ayamaguc/Grid/triSYCL-master/include/ -std=c++1z -DOPENCL -DVGPU -DGEN_SIMD_WIDTH=64
+CL_LDLIBS   := -lm
+CL_LDFLAGS  := 
+
 
 #Generic options
 GENERIC_CXXFLAGS  := -DGEN -O3 -DGEN_SIMD_WIDTH=16 $(OMP)
 GENERIC_DATA      := arch/sse/static_data.cc
+triSYCL_CXXFLAGS  := -I/Users/ayamaguc/Grid/triSYCL-master/include 
 
 ################################################################################
 # NVCC and gpu ; 512 bit vector coalescing
@@ -63,7 +72,7 @@ GPU_DATA      := arch/avx512/static_data.cc
 LDLIBS    := -lm
 LDFLAGS   := 
 
-all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple
+all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple parallel_vector_add.triSYCL bench.triSYCL
 
 bench.avx512: bench.cc $(AVX512_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX512_CXXFLAGS) bench.cc $(AVX512_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx512
@@ -89,8 +98,17 @@ bench.gpu: bench.cc $(GPU_DATA)  WilsonKernelsHand.h Makefile
 bench.simple: bench_simple.cc $(SIMPLEDATA) dslash_simple.h Makefile
 	$(CXX) $(CXXFLAGS) bench_simple.cc $(SIMPLEDATA) $(LDLIBS) $(LDFLAGS) -o bench.simple
 
+bench.triSYCL: bench.cc $(GPU_DATA) WilsonKernelsHand.h Makefile
+	$(CL_CXX) $(CL_CXXFLAGS) bench.cc -o bench.triSYCL.o 
+	$(CL_CXX) $(CL_CXXFLAGS) -c $(GPU_DATA) -o data.triSYCL.o
+	$(CL_CXX) $(CL_LDFLAGS) bench.triSYCL.o data.triSYCL.o -o bench.triSYCL $(CL_LDLIBS)
+
+parallel_vector_add.triSYCL: parallel_vector_add.cpp  Makefile
+	$(CL_CXX) $(CL_CXXFLAGS) parallel_vector_add.cpp $(CL_LDLIBS)  $(CL_LDFLAGS) -o parallel_vector_add.triSYCL
+
+
 clean:
-	rm -f  bench.avx512 bench.avx2 bench.avx bench.sse bench.gen  bench.simple TableGenerate
+	rm -f  bench.avx512 bench.avx2 bench.avx bench.sse bench.gen  bench.simple  bench.triSYCL TableGenerate
 	rm -rf  *.dSYM*
 	rm -f  *~
 

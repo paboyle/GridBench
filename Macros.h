@@ -5,10 +5,10 @@
 // Can we add SyCL ??
 /////////////////////////////////////////////////
 
-#ifndef VGPU 
+#ifndef __NVCC__
 
 #define accelerator_inline inline
-#define accelerator
+#define accelerator_func
 #define thread_loop( range , ... )              for range { __VA_ARGS__ ; };
 #define accelerator_loopN( iterator, num, ... ) thread_loop( (int iterator = 0;iterator<num;iterator++), { __VA_ARGS__ });
 
@@ -17,8 +17,11 @@
 ////////////////////
 // CUDA target
 ////////////////////
+#define accelerator_inline __host__ __device__ inline
+#define accelerator_func   __host__ __device__ 
+#define kernel_call        __global__
 
-template<typename lambda>  __global__
+template<typename lambda>  kernel_call
 void LambdaApply(uint64_t base, uint64_t Num, lambda Lambda)
 {
   uint64_t ss = blockIdx.x*blockDim.x + threadIdx.x;
@@ -27,8 +30,6 @@ void LambdaApply(uint64_t base, uint64_t Num, lambda Lambda)
   }
 }
 
-#define accelerator_inline __host__ __device__ inline
-#define accelerator __host__ __device__
 #define thread_loop( range , ... )              for range { __VA_ARGS__ ; };
 
 #define accelerator_loopN_debug( iterator, num, ... ) thread_loop( (int iterator = 0;iterator<num;iterator++), { __VA_ARGS__ });
@@ -36,7 +37,7 @@ void LambdaApply(uint64_t base, uint64_t Num, lambda Lambda)
 #define accelerator_loopN( iterator, num, ... )			\
   typedef decltype(num) Iterator;				\
   if ( num > 0 ) {			                        \
-    auto lambda = [=] accelerator (Iterator iterator) mutable { \
+    auto lambda = [=] __host__ __device__ (Iterator iterator) mutable { \
       __VA_ARGS__;						\
     };								\
     Iterator base = 0;						\

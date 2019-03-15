@@ -538,6 +538,7 @@ accelerator_inline void dslash_kernel_gpu_site(Simd *Up,Simd *outp,Simd *inp,uin
 
 const uint32_t gpu_threads = 128;
 
+#ifdef __NVCC__
 template<class Simd>
 void dslash_kernel_gpu(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,uint64_t Ls,uint8_t *prm)
 {
@@ -552,12 +553,109 @@ void dslash_kernel_gpu(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsit
       dslash_kernel_gpu_site<Simd>(Up,outp,inp,nbr,prm,Ls,sU,s);
   });
 }
+#else
+
+#include <CL/sycl.hpp>
+//
+// This is where it gets complicated
+//
+// Example code:
+/*
+  // Create a queue to work on
+  cl::sycl::queue q;
+
+  // Create buffers from a & b vectors
+  cl::sycl::buffer<float> A { std::begin(a), std::end(a) };
+  cl::sycl::buffer<float> B { std::begin(b), std::end(b) };
+
+  {
+    // A buffer of N float using the storage of c
+    cl::sycl::buffer<float> C { c, N };
+
+    using namespace cl::sycl;
+
+    q.submit([&](handler &cgh) {
+        // In the kernel A and B are read, but C is written
+        auto ka = A.get_access<access::mode::read>(cgh);
+        auto kb = B.get_access<access::mode::read>(cgh);
+        auto kc = C.get_access<access::mode::write>(cgh);
+
+        // Enqueue a parallel kernel
+        cgh.parallel_for<class vector_add>(N,
+                                           [=] (id<1> index) {
+                                             kc[index] = ka[index] + kb[index];
+                                           });
+      }); //< End of our commands for this queue
+  } //< Buffer C goes out of scope and copies back values to c
+ */
+// Requirements:
+//
+// For each host array must create a sycl::buffer
+//     We must get an accessor to the buffer with "get_access".
+//     
+// This is "hard" because the the lambda is capturing its arguments. 
+// 
+// It is easier to constrain in the Grid ET code, because we do a transformation 
+// from a Lattice<object> to a "LatticeView" object. This can set up an accessor 
+// in principle when the expression object is created.
+//
+// However, for the dslash kernel this will need to be done manually.
+//
+
+template<class Simd>
+void dslash_kernel_sycl(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,uint64_t Ls,uint8_t *prm)
+{
+  using namespace cl::sycl;
+
+  const uint64_t nsimd = Simd::Nsimd();
+  const uint64_t    NN = nsite*Ls*nsimd;
+
+  uint64_t begin=0;
+  uint64_t end  =NN;
+  cl::sycl::queue q;
+  cl::sycl::buffer<Simd>     Up_b   { &  Up[begin],&  Up[end]};
+  cl::sycl::buffer<Simd>     inp_b  { & inp[begin],& inp[end]};
+  cl::sycl::buffer<uint64_t> nbr_b  { & nbr[begin],& nbr[end]};
+  cl::sycl::buffer<uint8_t>  prm_b  { & prm[begin],& prm[end]};
+
+  {
+
+    cl::sycl::buffer<Simd>     outp_b { &outp[begin],&outp[end]};
+
+    q.submit([&](handler &cgh) {
+        // In the kernel A and B are read, but C is written
+        auto Up_k   =  Up_b.get_access<access::mode::read>(cgh);
+        auto inp_k  = inp_b.get_access<access::mode::read>(cgh); 
+        auto nbr_k  = nbr_b.get_access<access::mode::read>(cgh); 
+        auto prm_k  = prm_b.get_access<access::mode::read>(cgh); 
+        auto outp_k =outp_b.get_access<access::mode::write>(cgh); 
+
+	cgh.parallel_for<class dslash>(NN,
+				       [=] (id<1> sss) {
+					 uint64_t cur  = sss;      cur = cur / nsimd;
+					 uint64_t   s  = cur%Ls;   cur = cur / Ls;
+					 uint64_t   sU = cur;        // 4d site
+					 dslash_kernel_gpu_site<Simd>(&Up_k[0],
+								      &outp_k[0],
+								      &inp_k[0],
+								      &nbr_k[0],
+								      &prm_k[0],Ls,sU,s);
+				       });
+      }); //< End of our commands for this queue
+
+  } //< Buffer outp_b goes out of scope and copies back values to outp
+}
+#endif
 
 #ifdef VGPU
 template<class Simd>
 void dslash_kernel(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,uint64_t Ls,uint8_t *prm)
 {
+#ifdef __NVCC__
   dslash_kernel_gpu(Up,outp,inp,nbr,nsite,Ls,prm);
+#else
+  dslash_kernel_sycl(Up,outp,inp,nbr,nsite,Ls,prm);
+#endif
 }
 #else
 template<class Simd>
@@ -566,5 +664,3 @@ void dslash_kernel(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,ui
   dslash_kernel_cpu(Up,outp,inp,nbr,nsite,Ls,prm);
 }
 #endif
-
-

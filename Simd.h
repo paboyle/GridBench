@@ -27,7 +27,7 @@
   typedef  float  RealF;
   typedef  double RealD;
 
-#ifdef VGPU
+#ifdef __NVCC__
 #include <thrust/complex.h>
 typedef thrust::complex<RealF> ComplexF;
 typedef thrust::complex<RealD> ComplexD;

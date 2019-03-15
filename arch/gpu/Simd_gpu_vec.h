@@ -1,4 +1,15 @@
+#ifdef __NVCC__
 #include <cuda_fp16.h>
+#else
+typedef uint16_t half;
+template<class datum> struct datum2 {
+  datum x;
+  datum y;
+};
+typedef datum2<half>     half2;
+typedef datum2<float>   float2;
+typedef datum2<double> double2;
+#endif
 
 #define COALESCE_GRANULARITY ( GEN_SIMD_WIDTH )
 

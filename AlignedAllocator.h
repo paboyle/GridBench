@@ -1,7 +1,7 @@
 #pragma once
 
 
-#ifndef VGPU
+#ifndef __NVCC__
 #if defined(__INTEL_COMPILER)
 #include <malloc.h>
 #else
@@ -38,7 +38,7 @@ public:
   pointer allocate(size_type __n, const void* _p= 0)
   { 
     size_type bytes = __n*sizeof(_Tp);
-#ifdef VGPU
+#ifdef __NVCC__
     pointer ptr;
     ////////////////////////////////////
     // Unified (managed) memory
@@ -60,7 +60,7 @@ public:
   }
 
   void deallocate(pointer __p, size_type __n) { 
-#ifdef VGPU
+#ifdef __NVCC__
     cudaFree((void *)__p);
 #else
 #ifdef GEN
