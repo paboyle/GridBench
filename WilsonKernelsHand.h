@@ -555,6 +555,7 @@ void dslash_kernel_gpu(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsit
 }
 #else
 
+#ifdef VGPU
 #include <CL/sycl.hpp>
 //
 // This is where it gets complicated
@@ -645,6 +646,7 @@ void dslash_kernel_sycl(Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsi
 
   } //< Buffer outp_b goes out of scope and copies back values to outp
 }
+#endif
 #endif
 
 #ifdef VGPU
