@@ -11,7 +11,9 @@ OMP:=-std=c++11 -O3
 CXX       := clang++-mp-6.0
 #CXXCL     := clang++-mp-7.0
 #CXXCL     := ${HOME}/QCD/build/bin/clang++ 
-CXXCL     := g++-mp-7
+CXXCL     := compute++
+CXXFLAGSCL:= -I/home/ckelly/src/codeplay/ComputeCpp-CE-1.1.1-Ubuntu-16.04-x86_64/include
+LDFLAGSCL:= -lComputeCpp -L/home/ckelly/src/codeplay/ComputeCpp-CE-1.1.1-Ubuntu-16.04-x86_64/lib
 CXXFLAGS  := $(OMP)
 
 AVX512_DATA   := arch/avx512/static_data.cc
@@ -94,7 +96,7 @@ bench.simple: bench_simple.cc $(SIMPLEDATA) dslash_simple.h Makefile
 	$(CXX) $(CXXFLAGS) bench_simple.cc $(SIMPLEDATA) -I/usr/local/Cellar/boost/1.68.0_1/include -o bench.simple
 
 bench.sycl: bench_sycl.cc $(SIMPLEDATA) dslash_simple.h Makefile
-	$(CXXCL) -O3 -std=c++17 -I/Users/ayamaguc/Grid/triSYCL-master/include bench_sycl.cc $(SIMPLEDATA) $(LDLIBS) $(LDFLAGS) -o bench.sycl
+	$(CXXCL) -O3 -std=c++17 $(CXXFLAGSCL) bench_sycl.cc $(SIMPLEDATA) $(LDLIBS) $(LDFLAGS) $(LDFLAGSCL) -o bench.sycl
 
 ######################
 # Build a test from triSYCL distro to check compiler working

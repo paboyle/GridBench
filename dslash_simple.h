@@ -294,12 +294,17 @@ void dslash_kernel_unroll(Complex * RESTRICT Up,Complex * RESTRICT Psip,Complex 
 // Unrolled mu loop. Probably not necessary.
 // Removing temporary stack arrays on U and Phi helps; encode memrefs.
 
-template<class Complex>
-inline void dslash_kernel_site(int ssite, Complex * RESTRICT Up,Complex * RESTRICT Psip,Complex * RESTRICT Phip,uint64_t * RESTRICT nbr,uint64_t nsite,uint64_t Ls,uint8_t * RESTRICT prm)
+template<class ComplexPointerU,class ComplexPointerPsi,class ComplexPointerPhi, class NbrPointer, class PrmPointer>
+inline void dslash_kernel_site(int ssite,
+			       ComplexPointerU U,
+			       ComplexPointerPsi Psi,
+			       ComplexPointerPhi Phi,
+			       NbrPointer nbr,
+			       uint64_t nsite,uint64_t Ls,
+			       PrmPointer prm)
 {
-  Complex * RESTRICT U  = (Complex *)Up;
-  Complex * RESTRICT Psi= (Complex *)Psip;
-  Complex * RESTRICT Phi= (Complex *)Phip;
+  typedef decltype(U[0]) Complex;
+  
   Complex complex_i(0.0,1.0);
 
   //#ifdef OMP

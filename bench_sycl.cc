@@ -1,4 +1,5 @@
 
+
 // Invoke dslash.s - test for compiler-gsnerated code
 #include <stdio.h>
 #include <vector>
@@ -73,15 +74,15 @@ int main(int argc, char* argv[])
   ////////////////////////////////////////////////////////////////////
   // Option 2: copy from static arrays
   ////////////////////////////////////////////////////////////////////
-  uint64_t umax   = nsite*18*8 ;
-  uint64_t fmax   = nsite*24*Ls;
+  uint64_t umax   = nsite*9*8 ;
+  uint64_t fmax   = nsite*12*Ls;
   uint64_t nbrmax = nsite*Ls*8;
   uint64_t vol    = nsite*Ls; 
 
-  Vector<double> U(umax);   bcopy(U_static,&U[0],umax*sizeof(double));
-  Vector<double> Psi(fmax);
-  Vector<double> Phi(fmax);     bcopy(Phi_static,&Phi[0],fmax*sizeof(double));
-  Vector<double> Psi_cpp(fmax); bcopy(Psi_cpp_static,&Psi_cpp[0],fmax*sizeof(double));
+  Vector<ComplexD> U(umax);   bcopy(U_static,&U[0],umax*sizeof(ComplexD));
+  Vector<ComplexD> Psi(fmax);
+  Vector<ComplexD> Phi(fmax);     bcopy(Phi_static,&Phi[0],fmax*sizeof(ComplexD));
+  Vector<ComplexD> Psi_cpp(fmax); bcopy(Psi_cpp_static,&Psi_cpp[0],fmax*sizeof(ComplexD));
   uint64_t *nbr    = new uint64_t[nsite*Ls*8]; bcopy(nbr_static,nbr,nbrmax*sizeof(uint64_t));
   uint8_t  *prm    = new uint8_t[nsite*Ls*8]; bcopy(prm_static,prm,nbrmax*sizeof(uint8_t));
   uint64_t nbr_size=nsite*Ls*8;
@@ -89,8 +90,9 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "Calling dslash_kernel "<<std::endl;
 
+  ComplexD zero(0,0);
   for(uint64_t i=0; i<fmax;i++){
-    Psi[i]=0.0;
+    Psi[i]=zero;
   }
 
   typedef  std::chrono::system_clock          Clock;
@@ -98,15 +100,17 @@ int main(int argc, char* argv[])
   typedef  std::chrono::microseconds          Usecs;
 
   Usecs elapsed;
+  Usecs kernel;
   double flops = 1320.0*vol;
   int nrep=300; // cache warm
 
 
+  TimePoint kernel_start;
   TimePoint start = Clock::now();
   for(int i=0;i<nrep;i++){
-    dslash_kernel<ComplexD>((ComplexD *)&U[0],
-			    (ComplexD *)&Psi[0],
-			    (ComplexD *)&Phi[0],
+    dslash_kernel<ComplexD>(&U[0],
+			    &Psi[0],
+			    &Phi[0],
 			    &nbr[0],
 			    nsite,
 			    Ls,
@@ -120,12 +124,12 @@ int main(int argc, char* argv[])
   // Check results
   double err=0;
   for(uint64_t i=0; i<fmax;i++){
-    err += pow(Psi_cpp[i]-Psi[i],2);
+    err += pow(Psi_cpp[i].re-Psi[i].re,2)+ pow(Psi_cpp[i].im-Psi[i].im,2);
   };
   std::cout<< "normdiff "<< err<<std::endl;
   assert(err <= 1.0e-10);
   for(uint64_t i=0; i<fmax;i++){
-    Psi[i]=0.0;
+    Psi[i]=zero;
   }
 
   std::cout <<std::endl;
@@ -133,9 +137,9 @@ int main(int argc, char* argv[])
 
   start = Clock::now();
   for(int i=0;i<nrep;i++){
-    dslash_kernel_unroll<ComplexD>((ComplexD *)&U[0],
-				   (ComplexD *)&Psi[0],
-				   (ComplexD *)&Phi[0],
+    dslash_kernel_unroll<ComplexD>(&U[0],
+				   &Psi[0],
+				   &Phi[0],
 				   &nbr[0],
 				   nsite,
 				   Ls,
@@ -149,13 +153,13 @@ int main(int argc, char* argv[])
   // Check results
   err=0;
   for(uint64_t i=0; i<fmax;i++){
-    err += pow(Psi_cpp[i]-Psi[i],2);
+    err += pow(Psi_cpp[i].re-Psi[i].re,2)+ pow(Psi_cpp[i].im-Psi[i].im,2);
   };
   std::cout<< "normdiff "<< err<<std::endl;
   assert(err <= 1.0e-10);
 
   for(uint64_t i=0; i<fmax;i++){
-    Psi[i]=0.0;
+    Psi[i]=zero;
   }
   ////////////////////////////////////////
   // Create a queue to work on 
@@ -167,54 +171,63 @@ int main(int argc, char* argv[])
   //  cl::sycl::gpu_selector selector; cl::sycl::queue q(selector);
   cl::sycl::queue q;
 
-  buffer<double> U_b   { std::begin(U), std::end(U) };
-  buffer<double> Phi_b { std::begin(Phi), std::end(Phi) };
+  buffer<ComplexD> U_b   { std::begin(U), std::end(U) };
+  buffer<ComplexD> Phi_b { std::begin(Phi), std::end(Phi) };
   buffer<uint64_t> nbr_b { &nbr[0], &nbr[nbr_size] };
   buffer<uint8_t > prm_b { &prm[0], &prm[nbr_size] };
 
   // result
-  int nnsite=nsite;
+  cl::sycl::range<1> nnsite{nsite};
+
+  //  int nnsite=nsite;
   start = Clock::now();
   {
-    buffer<double> Psi_b { &Psi[0],  fmax };
+    buffer<ComplexD> Psi_b { &Psi[0],  fmax };
+    
+    kernel_start = Clock::now();
     for(int i=0;i<nrep;i++){
 
       q.submit([&](handler &cgh) {
+
+	  auto U_k   = U_b.get_access<access::mode::read>(cgh);
+	  auto Phi_k = Phi_b.get_access<access::mode::read>(cgh);
+	  auto nbr_k = nbr_b.get_access<access::mode::read>(cgh);
+	  auto prm_k = prm_b.get_access<access::mode::read>(cgh);
+	  auto Psi_k = Psi_b.get_access<access::mode::write>(cgh);
 	  
-	auto U_k = U_b.get_access<access::mode::read>(cgh);
-	auto Phi_k = Phi_b.get_access<access::mode::read>(cgh);
-	auto nbr_k = nbr_b.get_access<access::mode::read>(cgh);
-	auto prm_k = prm_b.get_access<access::mode::read>(cgh);
-	auto Psi_k = Psi_b.get_access<access::mode::write>(cgh);
-	
 	// Enqueue a parallel kernel
-	cgh.parallel_for<class vector_add>(nnsite, [=] (id<1> index) {
+
+	  cgh.parallel_for<class vector_add>(nnsite, [=] (id<1> index) {
+	    
 	    int site = index[0];
-	    dslash_kernel_site<ComplexD>(site,
-					 (ComplexD *)&U_k[0],
-					 (ComplexD *)&Psi_k[0],
-					 (ComplexD *)&Phi_k[0],
-					 &nbr_k[0],
-					 nsite,
-					 Ls,
-					 &prm_k[0]);
+	    dslash_kernel_site(site,
+			       U_k,
+			       Psi_k,
+			       Phi_k,
+			       nbr_k,
+			       nsite,
+			       Ls,
+			       prm_k);
 	});
       }); //< End of our commands for this queue
     }
+    q.wait();
+    kernel  = std::chrono::duration_cast<Usecs>(Clock::now()-kernel_start);   
   }    // Trigger copy back
-
-  q.wait();
   elapsed = std::chrono::duration_cast<Usecs>(Clock::now()-start);   
+
   std::cout <<std::endl;
-  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. << " Gflop/s in double precision; kernel call "<<elapsed.count()/nrep <<" microseconds "<<std::endl;
+  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. << " Gflop/s in double precision; including data motion "<<elapsed.count()/nrep <<" microseconds "<<std::endl;
+  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. << " Gflop/s in double precision; kernel calls "<<kernel.count()/nrep <<" microseconds "<<std::endl;
   std::cout <<std::endl;
 
   err=0;
-  for(uint64_t i=0; i<nnsite*24;i++){
-    err += pow(Psi_cpp[i]-Psi[i],2);
+  for(uint64_t i=0; i<nsite*24;i++){
+    err += pow(Psi_cpp[i].re-Psi[i].re,2)+ pow(Psi_cpp[i].im-Psi[i].im,2);
   };
   std::cout<< "normdiff "<< err<<std::endl;
   assert(err <= 1.0e-10);
 
   return 0;
 }
+
