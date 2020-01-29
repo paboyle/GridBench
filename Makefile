@@ -1,25 +1,28 @@
 
 SIMPLEDATA := arch/sse/static_data.cc
 
-#OMP:=-fopenmp -std=c++11 -DOMP
-OMP:=-std=c++11 -O3
+OMP:=-std=c++11  -O3 -DUSE_SYCL
+#OMP:=-std=c++11 -O3
 
 #CXX       := mpicxx-openmpi-devel-clang40
 #CXX       := mpiicpc
+#CXX       := g++-7
+CXX        := dpcpp
 #CXX       := g++
 #CXX       := mpicxx
-CXX       := clang++-mp-6.0
+#CXX       := clang++-mp-6.0
 #CXXCL     := clang++-mp-7.0
 #CXXCL     := ${HOME}/QCD/build/bin/clang++ 
-CXXCL     := compute++
-CXXFLAGSCL:= -I/home/ckelly/src/codeplay/ComputeCpp-CE-1.1.1-Ubuntu-16.04-x86_64/include
-LDFLAGSCL:= -lComputeCpp -L/home/ckelly/src/codeplay/ComputeCpp-CE-1.1.1-Ubuntu-16.04-x86_64/lib
+CXXCL     := dpcpp
+CXXFLAGSCL:= 
+LDFLAGSCL:= 
 CXXFLAGS  := $(OMP)
 
 AVX512_DATA   := arch/avx512/static_data.cc
 AVX2_DATA     := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 AVX_DATA      := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 SSE_DATA      := arch/sse/static_data.cc
+RRII_DATA     := arch/avx512/static_data.cc
 
 #############################################
 # Intel
@@ -28,6 +31,7 @@ SSE_DATA      := arch/sse/static_data.cc
 #AVX2_CXXFLAGS    := -DAVX2  -march=core-avx2 -xcore-avx2 $(OMP)
 #AVX_CXXFLAGS     := -DAVX1  -mavx -xavx $(OMP)
 #SSE_CXXFLAGS     := -DSSE4  -msse4.2 -xsse4.2  $(OMP)
+#RRII_CXXFLAGS     := -DRRII  -mavx2 -mfma  $(OMP)
 
 #############################################
 # CLANG
@@ -36,6 +40,7 @@ AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OM
 AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
+RRII_CXXFLAGS     := -DRRII  -mavx2 -mfma  $(OMP) -DGEN_SIMD_WIDTH=32
 
 #############################################
 # G++
@@ -44,7 +49,6 @@ SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
 #AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 #AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 #SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
-
 
 #Generic options
 GENERIC_CXXFLAGS  := -DGEN -O3 -DGEN_SIMD_WIDTH=16 $(OMP)
@@ -69,13 +73,16 @@ GPU_DATA      := arch/avx512/static_data.cc
 LDLIBS    := -lm
 LDFLAGS   := 
 
-all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple bench.sycl
+all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple bench.rrii bench.sycl
 
 bench.avx512: bench.cc $(AVX512_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX512_CXXFLAGS) bench.cc $(AVX512_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx512
 
 bench.avx2: bench.cc $(AVX2_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX2_CXXFLAGS) bench.cc $(AVX2_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx2
+
+bench.rrii: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii
 
 bench.avx: bench.cc $(AVX_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX_CXXFLAGS) bench.cc $(AVX_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx

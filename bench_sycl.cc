@@ -168,8 +168,8 @@ int main(int argc, char* argv[])
   std::cout <<std::endl;
   std::cout << "Calling dslash_kernel_SYCL "<<std::endl;
 
-  //  cl::sycl::gpu_selector selector; cl::sycl::queue q(selector);
-  cl::sycl::queue q;
+  cl::sycl::gpu_selector selector; cl::sycl::queue q(selector);
+  //  cl::sycl::queue q;
 
   buffer<ComplexD> U_b   { std::begin(U), std::end(U) };
   buffer<ComplexD> Phi_b { std::begin(Phi), std::end(Phi) };

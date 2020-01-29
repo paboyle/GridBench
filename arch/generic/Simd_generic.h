@@ -502,6 +502,8 @@ Author: Antonin Portelli <antonin.portelli@me.com>
   typedef vecf SIMD_Ftype; // Single precision type
   typedef vecd SIMD_Dtype; // Double precision type
   typedef veci SIMD_Itype; // Integer type
+  typedef SIMD_Ftype SIMD_CFtype;  // Single precision type
+  typedef SIMD_Dtype SIMD_CDtype; // Double precision type
 
   // prefetch utilities
   inline void v_prefetch0(int size, const char *ptr){};

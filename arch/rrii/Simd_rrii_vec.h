@@ -1,4 +1,28 @@
+
 #define COALESCE_GRANULARITY ( GEN_SIMD_WIDTH )
+
+//typedef uint16_t half;
+#include <CL/sycl.hpp>
+#if 0
+typedef cl::sycl::vec<float,8>     vfloat;
+typedef cl::sycl::vec<double,4>    vdouble;
+typedef cl::sycl::vec<Integer,8>   vinteger;
+//typedef Integer vinteger  __attribute__((ext_vector_type(8)));
+#else
+typedef float     vfloat  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
+typedef double    vdouble __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
+typedef Integer vinteger  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
+#endif
+
+template<class datum> struct wordsize {  };
+template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; typedef float word_type; };
+template<> struct wordsize<double> { static const int bytes = sizeof(double); typedef double word_type; };
+
+template<> struct wordsize<vfloat>  { static const int bytes = sizeof(float)   ; typedef float word_type; };
+template<> struct wordsize<vdouble> { static const int bytes = sizeof(double)  ; typedef double word_type; };
+template<> struct wordsize<vinteger>{ static const int bytes = sizeof(Integer) ; typedef Integer word_type; };
+
+//typedef half      vhalf   __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
 
 template<class _datum> struct datum2 {
   typedef _datum datum;
@@ -6,30 +30,16 @@ template<class _datum> struct datum2 {
   datum y;
 };
 
-typedef uint16_t half;
-typedef float     vfloat  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-typedef double    vdouble __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-typedef Integer vinteger  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-typedef half      vhalf   __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-
-typedef datum2<half>     half2;
+//typedef datum2<half>     half2;
 typedef datum2<float>   float2;
 typedef datum2<double> double2;
 
-typedef datum2<vhalf>     vhalf2;
+//typedef datum2<vhalf>     vhalf2;
 typedef datum2<vfloat>   vfloat2;
 typedef datum2<vdouble> vdouble2;
 
-template<class datum> struct wordsize {  };
-template<> struct wordsize<half>   { static const int bytes = sizeof(half) ; };
-template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; };
-template<> struct wordsize<double> { static const int bytes = sizeof(double) ; };
-
-template<> struct wordsize<vhalf>   { static const int bytes = sizeof(half) ; };
-template<> struct wordsize<vfloat>  { static const int bytes = sizeof(float) ; };
-template<> struct wordsize<vdouble> { static const int bytes = sizeof(double) ; };
-template<> struct wordsize<vinteger>{ static const int bytes = sizeof(Integer) ; };
-
+template<> struct wordsize<vfloat2>  { static const int bytes = sizeof(float)   ; typedef float word_type; };
+template<> struct wordsize<vdouble2> { static const int bytes = sizeof(double)  ; typedef double word_type; };
 
 template<class pair>
 class GpuComplex {
@@ -39,6 +49,7 @@ public:
 public: 
   GpuComplex() = default;
   static const int N = sizeof(real)/(wordsize<real>::bytes);
+  typedef typename wordsize<real>::word_type word_type;
   accelerator_inline GpuComplex(const GpuComplex &zz) { z = zz.z;};
     
   friend accelerator_inline  GpuComplex operator+(const GpuComplex &lhs,const GpuComplex &rhs) { 
@@ -68,7 +79,7 @@ public:
   }
   friend std::ostream& operator<< (std::ostream& stream, const GpuComplex o){
     for(int i=0;i<N;i++) {
-      stream << i<< " ("<< o.z.x[i] << ","<< o.z.y[i] <<")";
+      //      stream << i<< " ("<< o.z.x[i] << ","<< o.z.y[i] <<")";
     }
     return stream;
   }
@@ -82,6 +93,7 @@ public:
   static const int N = sizeof(scalar)/wordsize<scalar>::bytes;
 public: 
   GpuReal() = default;
+  typedef typename wordsize<scalar>::word_type word_type;
   accelerator_inline GpuReal(const GpuReal &zz) { z = zz.z;};
   friend accelerator_inline  GpuReal operator+(const GpuReal &lhs,const GpuReal &rhs) { 
     GpuReal r ; 
@@ -100,15 +112,15 @@ public:
   }
 };
 
-typedef GpuComplex<half2  > GpuComplexH;
+//typedef GpuComplex<half2  > GpuComplexH;
 typedef GpuComplex<float2 > GpuComplexF;
 typedef GpuComplex<double2> GpuComplexD;
 
-typedef GpuComplex<vhalf2  > GpuVectorCH;
+//typedef GpuComplex<vhalf2  > GpuVectorCH;
 typedef GpuComplex<vfloat2 > GpuVectorCF;
 typedef GpuComplex<vdouble2> GpuVectorCD;
 
-typedef GpuReal<vhalf>    GpuVectorRH;
+//typedef GpuReal<vhalf>    GpuVectorRH;
 typedef GpuReal<vfloat>   GpuVectorRF;
 typedef GpuReal<vdouble>  GpuVectorRD;
 typedef GpuReal<vinteger> GpuVectorI;
@@ -117,39 +129,46 @@ struct Vsplat{
 
   accelerator_inline GpuVectorCF operator()(float a, float b){
       GpuVectorCF ret;
+      float * x_p = (float *)&ret.z.x;
+      float * y_p = (float *)&ret.z.y;
       for(int i=0;i<GpuVectorCF::N;i++){
-	ret.z.x[i] = a;
-	ret.z.y[i] = b;
+	x_p[i] = a;
+	y_p[i] = b;
       }
       return ret;
     }
     accelerator_inline GpuVectorRF operator()(float a){
       GpuVectorRF ret;
+      float *z_p= (float *)&ret.z;
       for(int i=0;i<GpuVectorRF::N;i++){
-	ret.z[i] = a;
+	z_p[i] = a;
       }
       return ret;
     }
     accelerator_inline GpuVectorCD operator()(double a, double b){
       GpuVectorCD ret;
+      double *x_p=(double *)&ret.z.x;
+      double *y_p=(double *)&ret.z.y;
       for(int i=0;i<GpuVectorCD::N;i++){
-	ret.z.x[i] = a;
-	ret.z.y[i] = b;
+	x_p[i] = a;
+	y_p[i] = b;
       }
       return ret;
     }
     accelerator_inline GpuVectorRD operator()(double a){
-      GpuVectorRD ret; 
+      GpuVectorRD ret;
+      double *z_p = (double *)&ret.z;
       for(int i=0;i<GpuVectorRD::N;i++){
-	ret.z[i] = a;
+	z_p[i] = a;
       }
       return ret;
     }
     //Integer
     accelerator_inline GpuVectorI operator()(Integer a){
       GpuVectorI ret;
+      Integer *I_p=(Integer *)&ret.z;
       for(int i=0;i<GpuVectorI::N;i++){
-	ret.z[i] = a;
+	I_p[i] = a;
       }
       return ret;
     }
@@ -186,9 +205,11 @@ struct Vsplat{
     accelerator_inline GpuVectorCF operator()(ComplexF *a){
       typedef GpuVectorCF vec;
       vec ret;
+      float *x_p=(float *)&ret.z.x;
+      float *y_p=(float *)&ret.z.y;
       for(int i=0;i<vec::N;i++){
-	ret.z.x[i] = a[i].real();
-	ret.z.y[i] = a[i].imag();
+	x_p[i] = a[i].real();
+	y_p[i] = a[i].imag();
       }
       return ret;
     }
@@ -196,9 +217,11 @@ struct Vsplat{
     accelerator_inline GpuVectorCD operator()(ComplexD *a){
       typedef GpuVectorCD vec;
       vec ret;
+      double *x_p=(double *)&ret.z.x;
+      double *y_p=(double *)&ret.z.y;
       for(int i=0;i<vec::N;i++){
-	ret.z.x[i] = a[i].real();
-	ret.z.y[i] = a[i].imag();
+	x_p[i] = a[i].real();
+	y_p[i] = a[i].imag();
       }
       return ret;
     }
@@ -206,8 +229,9 @@ struct Vsplat{
     accelerator_inline GpuVectorRF operator()(float *a){
       typedef GpuVectorRF vec;
       vec ret;
+      float *z_p = (float *)&ret.z;
       for(int i=0;i<vec::N;i++){
-	ret.z[i] = a[i];
+	z_p[i] = a[i];
       }
       return ret;
     }
@@ -215,8 +239,9 @@ struct Vsplat{
     accelerator_inline GpuVectorRD operator()(double *a){
       typedef GpuVectorRD vec;
       vec ret;
+      double *z_p = (double *)&ret.z;
       for(int i=0;i<vec::N;i++){
-	ret.z[i] = a[i];
+	z_p[i] = a[i];
       }
       return ret;
     }
@@ -224,8 +249,9 @@ struct Vsplat{
     accelerator_inline GpuVectorI operator()(Integer *a){
       typedef GpuVectorI vec;
       vec ret;
+      Integer *z_p=(Integer *)&ret.z;
       for(int i=0;i<vec::N;i++){
-	ret.z[i] = a[i];
+	z_p[i] = a[i];
       }
       return ret;
     }
@@ -363,14 +389,14 @@ struct Vsplat{
       typedef GpuVectorCF vec;
       vec ret;
       ret.z.x = in.z.x;
-      ret.z.y =-in.z.y;
+      ret.z.y = in.z.y*(-1.0);
       return ret;
     }
     accelerator_inline GpuVectorCD operator()(GpuVectorCD in){
       typedef GpuVectorCD vec;
       vec ret;
       ret.z.x = in.z.x;
-      ret.z.y =-in.z.y;
+      ret.z.y = in.z.y*(-1.0);
       return ret;
     }
   };
@@ -381,14 +407,14 @@ struct Vsplat{
       typedef GpuVectorCF vec;
       vec ret;
       ret.z.x = in.z.y;
-      ret.z.y =-in.z.x;
+      ret.z.y = in.z.x*(-1.0);
       return ret;
     }
     accelerator_inline GpuVectorCD operator()(GpuVectorCD in,GpuVectorCD dummy){
       typedef GpuVectorCD vec;
       vec ret;
       ret.z.x = in.z.y;
-      ret.z.y =-in.z.x;
+      ret.z.y = in.z.x*(-1.0);
       return ret;
     }
   };
@@ -398,14 +424,14 @@ struct Vsplat{
     accelerator_inline GpuVectorCF operator()(GpuVectorCF in,GpuVectorCF dummy){
       typedef GpuVectorCF vec;
       vec ret;
-      ret.z.x =-in.z.y;
+      ret.z.x = in.z.y*(-1.0);
       ret.z.y = in.z.x;
       return ret;
     }
     accelerator_inline GpuVectorCD operator()(GpuVectorCD in,GpuVectorCD dummy){
       typedef GpuVectorCD vec;
       vec ret;
-      ret.z.x =-in.z.y;
+      ret.z.x = in.z.y*(-1.0);
       ret.z.y = in.z.x;
       return ret;
     }
@@ -416,21 +442,29 @@ struct Vsplat{
     template <int n,class pair>				       
     static accelerator_inline GpuComplex<pair> PermuteN(GpuComplex<pair> in) {
       typedef GpuComplex<pair> vec;
-      vec out;					
+      typedef typename wordsize<pair>::word_type word_type;
+      vec out;
+      word_type *out_x_p = (word_type *)&out.z.x;
+      word_type *out_y_p = (word_type *)&out.z.y;
+      word_type * in_x_p = (word_type *)&in.z.x;
+      word_type * in_y_p = (word_type *)&in.z.y;
       unsigned int _mask = vec::N >> (n + 1);	
       for(int i=0;i<vec::N;i++) {
-	out.z.x[i] = in.z.x[i^_mask];
-	out.z.y[i] = in.z.y[i^_mask];
+	out_x_p[i] = in_x_p[i^_mask];
+	out_y_p[i] = in_y_p[i^_mask];
       }
       return out;	
     }
     template <int n,class datum>				       
     static accelerator_inline GpuReal<datum> PermuteN(GpuReal<datum> in) {
       typedef GpuReal<datum> vec;
-      vec out;					
+      typedef typename GpuReal<datum>::word_type word_type;
+      vec out;
+      word_type *out_p = (word_type *)&out.z;
+      word_type * in_p = (word_type *)& in.z;
       unsigned int _mask = vec::N >> (n + 1);	
       for(int i=0;i<vec::N;i++) {
-	out.z[i] = in.z[i^_mask];
+	out_p[i] = in_p[i^_mask];
       }
       return out;	
     }
@@ -449,12 +483,12 @@ struct Vsplat{
 //////////////////////////////////////////////////////////////////////////////////////
 // Here assign types 
 //////////////////////////////////////////////////////////////////////////////////////
-  typedef GpuVectorRH  SIMD_Htype; // Single precision type
+//  typedef GpuVectorRH  SIMD_Htype; // Single precision type
   typedef GpuVectorRF  SIMD_Ftype; // Single precision type
   typedef GpuVectorRD  SIMD_Dtype; // Double precision type
   typedef GpuVectorI   SIMD_Itype; // Integer type
 
-  typedef GpuVectorCH  SIMD_CHtype; // Single precision type
+//  typedef GpuVectorCH  SIMD_CHtype; // Single precision type
   typedef GpuVectorCF  SIMD_CFtype; // Single precision type
   typedef GpuVectorCD  SIMD_CDtype; // Double precision type
 

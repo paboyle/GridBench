@@ -15,6 +15,9 @@
 #if defined VGPU
 #include "arch/gpu/Simd_gpu_vec.h"
 #endif
+#if defined RRII
+#include "arch/rrii/Simd_rrii_vec.h"
+#endif
 
 //////////////////////////////////////
 // demote a vector to real type
@@ -212,18 +215,11 @@ class Simd {
   // all subtypes; may not be a good assumption, but could
   // add the vector width as a template param for BG/Q for example
   ////////////////////////////////////////////////////////////////////
-  friend accelerator_inline void permute0(Simd &y, Simd b) {
-    y.v = Permute::Permute0(b.v);
-  }
-  friend accelerator_inline void permute1(Simd &y, Simd b) {
-    y.v = Permute::Permute1(b.v);
-  }
-  friend accelerator_inline void permute2(Simd &y, Simd b) {
-    y.v = Permute::Permute2(b.v);
-  }
-  friend accelerator_inline void permute3(Simd &y, Simd b) {
-    y.v = Permute::Permute3(b.v);
-  }
+  friend accelerator_inline void permute0(Simd &y, Simd b) {    y.v = Permute::Permute0(b.v);  }
+  friend accelerator_inline void permute1(Simd &y, Simd b) {    y.v = Permute::Permute1(b.v);  }
+  friend accelerator_inline void permute2(Simd &y, Simd b) {    y.v = Permute::Permute2(b.v);  }
+  friend accelerator_inline void permute3(Simd &y, Simd b) {    y.v = Permute::Permute3(b.v);  }
+  
   friend accelerator_inline void permute(Simd &y, Simd b, int perm) {
 
          if(perm==3) permute3(y, b);
@@ -391,13 +387,8 @@ accelerator_inline Simd<S, V> timesI(const Simd<S, V> &in) {
 ///////////////////////////////
 typedef Simd<float , SIMD_Ftype> vRealF;
 typedef Simd<double, SIMD_Dtype> vRealD;
-#ifdef VGPU
 typedef Simd<complex<float>   , SIMD_CFtype> vComplexF;
 typedef Simd<complex<double>  , SIMD_CDtype> vComplexD;
-#else
-typedef Simd<complex<float>   , SIMD_Ftype> vComplexF;
-typedef Simd<complex<double>  , SIMD_Dtype> vComplexD;
-#endif
 
 static_assert(sizeof(SIMD_Ftype) == sizeof(SIMD_Dtype), "SIMD vector lengths incorrect");
 

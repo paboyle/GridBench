@@ -43,6 +43,10 @@
 #include "arch/avx512/static_data.h"
 #endif
 
+#ifdef RRII
+#include "arch/avx512/static_data.h"
+#endif
+
 
 #define  FMT std::dec
 int main(int argc, char* argv[])
@@ -56,13 +60,41 @@ int main(int argc, char* argv[])
   uint64_t nbrmax = nsite*Ls*8;
   uint64_t vol    = nsite*Ls*vComplexD::Nsimd(); 
 
+  printf("Nsimd %d\n",vComplexD::Nsimd());
+  
   Vector<double>   U(umax);       bcopy(U_static,&U[0],umax*sizeof(double));
   Vector<double>   Psi(fmax);     bzero(&Psi[0],fmax*sizeof(double));
   Vector<double>   Phi(fmax);     bcopy(Phi_static,&Phi[0],fmax*sizeof(double));
   Vector<double>   Psi_cpp(fmax); bcopy(Psi_cpp_static,&Psi_cpp[0],fmax*sizeof(double));
   Vector<uint64_t> nbr(nsite*Ls*8); bcopy(nbr_static,&nbr[0],nbrmax*sizeof(uint64_t));
   Vector<uint8_t>  prm(nsite*Ls*8); bcopy(prm_static,&prm[0],nbrmax*sizeof(uint8_t));
-
+  
+#ifdef RRII
+  const int Nsimd = vComplexD::Nsimd();
+  for(uint32_t ss=0;ss<nsite;ss++){
+  for(uint32_t s=0;s<Ls;s++){
+  for(uint32_t sc=0;sc<12;sc++){
+    for(uint32_t n=0;n<vComplexD::Nsimd();n++){
+      for(uint32_t ri=0;ri<2;ri++){
+	int idx = ss*Ls*24*Nsimd
+	        +     s*24*Nsimd
+    	        +      sc*2*Nsimd;
+	Phi    [idx + ri*Nsimd + n ] =     Phi_static[idx + n*2 + ri];
+	Psi_cpp[idx + ri*Nsimd + n ] = Psi_cpp_static[idx + n*2 + ri];
+      }
+    }
+  }}}
+  std::cout << "Remapped Spinor data\n" ;
+  for(uint32_t ss=0;ss<nsite*9*8;ss++){
+    for(uint32_t n=0;n<vComplexD::Nsimd();n++){
+      for(uint32_t ri=0;ri<2;ri++){
+	U[ss*Nsimd*2 + ri*Nsimd + n ] = U_static[ss*Nsimd*2 + n*2 + ri];
+      }
+    }
+  }
+  std::cout << "Remapped Gauge data\n";
+#endif
+  
   std::cout << std::endl;
   std::cout << "Calling dslash_kernel "<<std::endl;
 
@@ -72,31 +104,40 @@ int main(int argc, char* argv[])
 
   Usecs elapsed;
   double flops = 1320.0*vol;
-  int nrep=500; // cache warm
+  int nrep=300; // cache warm
   TimePoint start = Clock::now();
-  for(int i=0;i<nrep;i++){
-    __SSC_MARK(0x000);
-    dslash_kernel<vComplexD>((vComplexD *)&U[0],
-			     (vComplexD *)&Psi[0],
-			     (vComplexD *)&Phi[0],
-			     &nbr[0],
-			     nsite,
-			     Ls,
-			     &prm[0]);
-    __SSC_MARK(0x001);
-  }
+
+  dslash_kernel<vComplexD>(nrep,
+			   (vComplexD *)&U[0],
+			   (vComplexD *)&Psi[0],
+			   (vComplexD *)&Phi[0],
+			   &nbr[0],
+			   nsite,
+			   Ls,
+			   &prm[0]);
+
   elapsed = std::chrono::duration_cast<Usecs>(Clock::now()-start);   
   std::cout << std::endl;
-  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. << " Gflop/s in double precision; kernel call "<<elapsed.count()/nrep <<" microseconds "<<std::endl;
+  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. <<
+    " Gflop/s in double precision; kernel call "<<elapsed.count()/nrep <<" microseconds "<<std::endl;
   std::cout << std::endl;
 
   // Check results
+  vComplexD *Psi_p = (vComplexD *) &Psi[0];
+  vComplexD *Psi_cpp_p = (vComplexD *) &Psi_cpp[0];
   double err=0;
+  double nref=0;
+  double nres=0;
   for(uint64_t i=0; i<fmax;i++){
     err += (Psi_cpp[i]-Psi[i])*(Psi_cpp[i]-Psi[i]);
+    nres += Psi[i]*Psi[i];
+    nref += Psi_cpp[i]*Psi_cpp[i];
   };
-  std::cout<< "normdiff "<< err<<std::endl;
-  assert(err <= 1.0e-10);
-  
+
+  std::cout<< "normdiff "<< err<< " ref "<<nref<<" result "<<nres<<std::endl;
+  for(int i=0;i<100;i++){
+    //    std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
+  }
+  assert(err <= 1.0e-10);  
   return 0;
 }

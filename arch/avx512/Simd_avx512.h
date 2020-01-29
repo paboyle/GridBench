@@ -213,6 +213,8 @@
   typedef __m512i SIMD_Htype;  // Single precision type
   typedef __m512  SIMD_Ftype;  // Single precision type
   typedef __m512d SIMD_Dtype; // Double precision type
+  typedef SIMD_Ftype SIMD_CFtype;  // Single precision type
+  typedef SIMD_Dtype SIMD_CDtype; // Double precision type
 
   // prefecth
   inline void v_prefetch0(int size, const char *ptr){
