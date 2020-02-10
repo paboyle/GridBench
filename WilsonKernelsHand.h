@@ -11,8 +11,6 @@
 #define Zm (6)
 #define Tm (7)
 
-
-
 #ifdef VGPU
 #inclue "WilsonKernelsHandGpu.h"
 

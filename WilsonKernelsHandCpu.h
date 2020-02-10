@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 
-#define LOAD_CHIMU \
+#define LOAD_CHIMU			\
   {const SiteSpinor & ref (in[offset]);	\
     Chimu_00=ref[0][0];\
     Chimu_01=ref[0][1];\
@@ -438,7 +438,6 @@ void dslash_kernel_cpu(int nrep,Simd *Up,Simd *outp,Simd *inp,uint64_t *nbrp,uin
   cl::sycl::buffer<uint8_t,1>  prm_b  { &prmp[begin],nbrmax};
 
   for(int rep=0;rep<nrep;rep++) {
-    printf("."); fflush(stdout);
     q.submit([&](handler &cgh) {
         // In the kernel A and B are read, but C is written
         auto Up_k   =  Up_b.template get_access<access::mode::read>(cgh);
@@ -485,9 +484,7 @@ void dslash_kernel_cpu(int nrep,Simd *Up,Simd *outp,Simd *inp,uint64_t *nbrp,uin
 	  });
 	
    }); //< End of our commands for this queue
-    
   }
-  printf("\n"); fflush(stdout);
 }
  //< Buffer outp_b goes out of scope and copies back values to outp
 #endif

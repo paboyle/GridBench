@@ -3,16 +3,19 @@
 
 //typedef uint16_t half;
 #include <CL/sycl.hpp>
-#if 0
-typedef cl::sycl::vec<float,8>     vfloat;
-typedef cl::sycl::vec<double,4>    vdouble;
-typedef cl::sycl::vec<Integer,8>   vinteger;
-//typedef Integer vinteger  __attribute__((ext_vector_type(8)));
+//#include <CL/sycl/group.hpp>
+//#include <CL/__spirv/spirv_vars.hpp>
+
+// SYCL
+#ifdef __SYCL_DEVICE_ONLY__
+inline int SIMTlane(void) { return __spirv_BuiltInGlobalInvocationId.x ; };
 #else
+inline int SIMTlane(void) { return 0; };
+#endif
+
 typedef float     vfloat  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
 typedef double    vdouble __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
 typedef Integer vinteger  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-#endif
 
 template<class datum> struct wordsize {  };
 template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; typedef float word_type; };
@@ -124,6 +127,7 @@ typedef GpuComplex<vdouble2> GpuVectorCD;
 typedef GpuReal<vfloat>   GpuVectorRF;
 typedef GpuReal<vdouble>  GpuVectorRD;
 typedef GpuReal<vinteger> GpuVectorI;
+
 
 struct Vsplat{
 

@@ -2,21 +2,62 @@
 
 #ifdef GEN
 #include "arch/generic/Simd_generic.h"
+#undef SIMT
 #endif
 #ifdef SSE4
 #include "arch/sse/Simd_sse4.h"
+#undef SIMT
 #endif
 #if defined(AVX1) || defined (AVXFMA) || defined(AVX2) || defined(AVXFMA4)
 #include "arch/avx/Simd_avx.h"
+#undef SIMT
 #endif
 #if defined AVX512
 #include "arch/avx512/Simd_avx512.h"
+#undef SIMT
 #endif
 #if defined VGPU
 #include "arch/gpu/Simd_gpu_vec.h"
+#define SIMT
 #endif
 #if defined RRII
 #include "arch/rrii/Simd_rrii_vec.h"
+#define SIMT
+#endif
+
+
+/*Small support to allow GPU coalesced access*/
+#ifdef SIMT
+accelerator_inline int SIMTlane(int Nsimd) 
+{
+#ifdef __CUDA_ARCH__
+  return ( (threadIdx.x) % Nsimd);
+#else
+  return 0;
+#endif
+}
+GpuComplexF coalescedRead(GpuVectorCF &in){
+  GpuComplexF ret;
+  ret.z.x = in.z.x[SIMTlane()];
+  ret.z.y = in.z.y[SIMTlane()];
+  return ret;
+}
+GpuComplexD coalescedRead(GpuVectorCD &in){
+  GpuComplexD ret;
+  ret.z.x = in.z.x[SIMTlane()];
+  ret.z.y = in.z.y[SIMTlane()];
+  return ret;
+}
+void coalescedWrite(GpuVectorCD &out, GpuComplexD in){
+  out.z.x[SIMTlane()] = in.z.x;
+  out.z.y[SIMTlane()] = in.z.y;
+}
+
+#else
+/*Trivial accessors for SIMD*/
+GpuVectorCF coalescedRead(GpuVectorCF &in){ return in;}
+GpuComplexD coalescedRead(GpuVectorCD &in){ return in;}
+void coalescedWrite(GpuVectorCD &out, GpuComplexD in){ out=in;}
 #endif
 
 //////////////////////////////////////
