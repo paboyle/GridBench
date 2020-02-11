@@ -23,7 +23,7 @@ double dslash_kernel(int nrep,Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64
   return 0;
 }
 #else
-#include "WilsonKernelsHandCpuNew.h"
+#include "WilsonKernelsHandCpu.h"
 
 template<class Simd>
 double dslash_kernel(int nrep,Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,uint64_t Ls,uint8_t *prm)

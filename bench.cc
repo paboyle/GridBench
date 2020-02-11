@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
   std::cout<< "normdiff "<< err<< " ref "<<nref<<" result "<<nres<<std::endl;
   //  for(int i=0;i<fmax;i++){
   for(int i=0;i<200;i++){
-    //    std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
+    std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
   }
   assert(err <= 1.0e-6);  
   return 0;
