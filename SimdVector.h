@@ -26,38 +26,35 @@
 #endif
 
 
+#if defined(GRID_SYCL_SIMT) || defined(GRID_NVCC)
+#warning "GRID_SYCL_SIMT coalesced reads"
 /*Small support to allow GPU coalesced access*/
-#ifdef SIMT
-accelerator_inline int SIMTlane(int Nsimd) 
+template<class vec>
+typename vec::vector_type::scalar_type coalescedRead(const vec &in, int lane){
+  typename vec::vector_type::scalar_type ret;
+  ret.z.x = in.v.z.x[lane];
+  ret.z.y = in.v.z.y[lane];
+  return ret;
+}
+template<class vec>
+void coalescedWrite(vec &out,const typename vec::vector_type::scalar_type &in,int lane){
+  out.v.z.x[lane] = in.z.x;
+  out.v.z.y[lane] = in.z.y;
+}
+template<class vec>
+typename vec::vector_type::scalar_type coalescedReadPermute(const vec & __restrict__ in,int ptype,int doperm,int lane)
 {
-#ifdef __CUDA_ARCH__
-  return ( (threadIdx.x) % Nsimd);
-#else
-  return 0;
-#endif
-}
-GpuComplexF coalescedRead(GpuVectorCF &in){
-  GpuComplexF ret;
-  ret.z.x = in.z.x[SIMTlane()];
-  ret.z.y = in.z.y[SIMTlane()];
+  int mask = vec::Nsimd() >> (ptype + 1);		
+  int plane= doperm ? lane ^ mask : lane;
+  typename vec::vector_type::scalar_type ret;
+  ret.z.x = in.v.z.x[plane];
+  ret.z.y = in.v.z.y[plane];
   return ret;
 }
-GpuComplexD coalescedRead(GpuVectorCD &in){
-  GpuComplexD ret;
-  ret.z.x = in.z.x[SIMTlane()];
-  ret.z.y = in.z.y[SIMTlane()];
-  return ret;
-}
-void coalescedWrite(GpuVectorCD &out, GpuComplexD in){
-  out.z.x[SIMTlane()] = in.z.x;
-  out.z.y[SIMTlane()] = in.z.y;
-}
-
 #else
 /*Trivial accessors for SIMD*/
-GpuVectorCF coalescedRead(GpuVectorCF &in){ return in;}
-GpuComplexD coalescedRead(GpuVectorCD &in){ return in;}
-void coalescedWrite(GpuVectorCD &out, GpuComplexD in){ out=in;}
+template<class T> T coalescedRead(const T &in,int lane){ return in;}
+template<class T> void coalescedWrite(T &out,const T & in,int lane){ out=in;}
 #endif
 
 //////////////////////////////////////
@@ -405,6 +402,21 @@ accelerator_inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
   return in;
 }
 
+#ifdef RRII
+template <class pair>
+accelerator_inline GpuComplex<pair> timesMinusI( const GpuComplex<pair> &in) {
+  GpuComplex<pair> ret;
+  ret = binary<GpuComplex<pair> >(in, ret, TimesMinusISIMD());
+  return ret;
+}
+template <class pair>
+accelerator_inline GpuComplex<pair> timesI( const GpuComplex<pair> &in) {
+  GpuComplex<pair> ret;
+  ret = binary<GpuComplex<pair> >(in, ret, TimesISIMD());
+  return ret;
+}
+#endif
+
 ///////////////////////
 // timesI
 ///////////////////////
@@ -431,7 +443,7 @@ typedef Simd<double, SIMD_Dtype> vRealD;
 typedef Simd<complex<float>   , SIMD_CFtype> vComplexF;
 typedef Simd<complex<double>  , SIMD_CDtype> vComplexD;
 
-static_assert(sizeof(SIMD_Ftype) == sizeof(SIMD_Dtype), "SIMD vector lengths incorrect");
+//static_assert(sizeof(SIMD_Ftype) == sizeof(SIMD_Dtype), "SIMD vector lengths incorrect");
 
 /////////////////////////////////////////
 // Some traits to recognise the types

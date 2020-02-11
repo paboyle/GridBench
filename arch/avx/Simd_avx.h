@@ -136,7 +136,7 @@
           b1 = _mm256_extractf128_si256(b,1);
           a0 = _mm_add_epi32(a0,b0);
           a1 = _mm_add_epi32(a1,b1);
-          return _mm256_set_m128i(a1,a0);
+          __m256i tmp = _mm256_set_m128i(a1,a0); return tmp;
 #endif
 #if defined (AVX2)
             return _mm256_add_epi32(a,b);
@@ -164,7 +164,7 @@
           b1 = _mm256_extractf128_si256(b,1);
           a0 = _mm_sub_epi32(a0,b0);
           a1 = _mm_sub_epi32(a1,b1);
-          return _mm256_set_m128i(a1,a0);
+          __m256i tmp = _mm256_set_m128i(a1,a0); return tmp;
 #endif
 #if defined (AVX2)
             return _mm256_sub_epi32(a,b);
@@ -339,7 +339,7 @@
       b1 = _mm256_extractf128_si256(b,1);
       a0 = _mm_mullo_epi32(a0,b0);
       a1 = _mm_mullo_epi32(a1,b1);
-      return _mm256_set_m128i(a1,a0);
+      __m256i tmp = _mm256_set_m128i(a1,a0); return tmp;
 #endif
 #if defined (AVX2)
       return _mm256_mullo_epi32(a,b);
@@ -374,6 +374,10 @@
 
   struct TimesMinusI{
     //Complex single
+    /* Bug in dpcpp
+     * ./arch/avx/Simd_avx.h:380:5: warning: control reaches end of non-void function [-Wreturn-type]
+      }
+
     inline __m256 operator()(__m256 in, __m256 ret){
       __m256 tmp =_mm256_addsub_ps(_mm256_setzero_ps(),in);   // r,-i
       return _mm256_shuffle_ps(tmp,tmp,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //-i,r
@@ -383,18 +387,32 @@
       __m256d tmp = _mm256_addsub_pd(_mm256_setzero_pd(),in); // r,-i
       return _mm256_shuffle_pd(tmp,tmp,0x5);
     }
+    */
+    inline __m256 operator()(__m256 in, __m256 dummy){
+      __m256 tmp =_mm256_addsub_ps(_mm256_setzero_ps(),in);   // r,-i
+      __m256 ret = _mm256_shuffle_ps(tmp,tmp,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //-i,r
+      return ret;
+    }
+    //Complex double
+    inline __m256d operator()(__m256d in, __m256d dummy){
+      __m256d tmp = _mm256_addsub_pd(_mm256_setzero_pd(),in); // r,-i
+      __m256d ret = _mm256_shuffle_pd(tmp,tmp,0x5);
+      return ret;
+    }
   };
 
   struct TimesI{
     //Complex single
-    inline __m256 operator()(__m256 in, __m256 ret){
+    inline __m256 operator()(__m256 in, __m256 dummy){
       __m256 tmp =_mm256_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1)); // i,r
-      return _mm256_addsub_ps(_mm256_setzero_ps(),tmp);          // i,-r
+      __m256 ret = _mm256_addsub_ps(_mm256_setzero_ps(),tmp);          // i,-r
+      return ret;
     }
     //Complex double
-    inline __m256d operator()(__m256d in, __m256d ret){
+    inline __m256d operator()(__m256d in, __m256d dummy){
       __m256d tmp = _mm256_shuffle_pd(in,in,0x5);
-      return _mm256_addsub_pd(_mm256_setzero_pd(),tmp); // i,-r
+      __m256d ret = _mm256_addsub_pd(_mm256_setzero_pd(),tmp); // i,-r
+      return ret;
     }
   };
 
@@ -405,23 +423,28 @@
   struct Permute{
 
     static inline __m256 Permute0(__m256 in){
-      return _mm256_permute2f128_ps(in,in,0x01); //ABCD EFGH -> EFGH ABCD
+      __m256 ret = _mm256_permute2f128_ps(in,in,0x01); //ABCD EFGH -> EFGH ABCD
+      return ret;
     };
     static inline __m256 Permute1(__m256 in){
-      return _mm256_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2)); //ABCD EFGH -> CDAB GHEF
+      __m256 ret = _mm256_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2)); //ABCD EFGH -> CDAB GHEF
+      return ret;
     };
     static inline __m256 Permute2(__m256 in){
-      return _mm256_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //ABCD EFGH -> BADC FEHG
+      __m256 ret = _mm256_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //ABCD EFGH -> BADC FEHG
+      return ret;
     };
     static inline __m256 Permute3(__m256 in){
       return in;
     };
 
     static inline __m256d Permute0(__m256d in){
-      return _mm256_permute2f128_pd(in,in,0x01); //AB CD -> CD AB
+      __m256d ret = _mm256_permute2f128_pd(in,in,0x01); //AB CD -> CD AB
+      return ret;
     };
     static inline __m256d Permute1(__m256d in){ //AB CD -> BA DC
-      return _mm256_shuffle_pd(in,in,0x5);
+      __m256d ret = _mm256_shuffle_pd(in,in,0x5);
+      return ret;
     };
     static inline __m256d Permute2(__m256d in){
       return in;

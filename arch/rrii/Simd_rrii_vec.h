@@ -1,29 +1,21 @@
-
-#define COALESCE_GRANULARITY ( GEN_SIMD_WIDTH )
-
-//typedef uint16_t half;
+// Enable this to switch on or off.
+// Add CUDA through this SIMD target later
 #include <CL/sycl.hpp>
-//#include <CL/sycl/group.hpp>
-//#include <CL/__spirv/spirv_vars.hpp>
 
-// SYCL
-#ifdef __SYCL_DEVICE_ONLY__
-inline int SIMTlane(void) { return __spirv_BuiltInGlobalInvocationId.x ; };
-#else
-inline int SIMTlane(void) { return 0; };
-#endif
+#define GRID_SYCL
+#define GRID_SYCL_SIMT
 
-typedef float     vfloat  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-typedef double    vdouble __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
-typedef Integer vinteger  __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
+typedef float     vfloat  __attribute__ ((vector_size (4*sizeof(float))));
+typedef double    vdouble __attribute__ ((vector_size (4*sizeof(double))));
+typedef Integer vinteger  __attribute__ ((vector_size (4*sizeof(uint32_t))));
 
 template<class datum> struct wordsize {  };
 template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; typedef float word_type; };
 template<> struct wordsize<double> { static const int bytes = sizeof(double); typedef double word_type; };
-
 template<> struct wordsize<vfloat>  { static const int bytes = sizeof(float)   ; typedef float word_type; };
 template<> struct wordsize<vdouble> { static const int bytes = sizeof(double)  ; typedef double word_type; };
 template<> struct wordsize<vinteger>{ static const int bytes = sizeof(Integer) ; typedef Integer word_type; };
+
 
 //typedef half      vhalf   __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
 
@@ -53,8 +45,18 @@ public:
   GpuComplex() = default;
   static const int N = sizeof(real)/(wordsize<real>::bytes);
   typedef typename wordsize<real>::word_type word_type;
+  typedef GpuComplex<datum2<word_type> > scalar_type;
   accelerator_inline GpuComplex(const GpuComplex &zz) { z = zz.z;};
     
+  // *=,+=,-= operators
+  accelerator_inline GpuComplex &operator+=(const GpuComplex &r) {
+    *this = (*this) + r;
+    return *this;
+  }
+  accelerator_inline GpuComplex &operator-=(const GpuComplex &r) {
+    *this = (*this) - r;
+    return *this;
+  }
   friend accelerator_inline  GpuComplex operator+(const GpuComplex &lhs,const GpuComplex &rhs) { 
     GpuComplex r ; 
     r.z.x = lhs.z.x + rhs.z.x; 
@@ -407,6 +409,14 @@ struct Vsplat{
 
   struct TimesMinusI{
     //Complex single
+    template<class datum>
+      accelerator_inline GpuComplex<datum>operator()(GpuComplex<datum> in,GpuComplex<datum> dummy){
+      GpuComplex<datum> ret;
+      ret.z.x = in.z.y;
+      ret.z.y = in.z.x*(-1.0);
+      return ret;
+    }
+    /*
     accelerator_inline GpuVectorCF operator()(GpuVectorCF in,GpuVectorCF dummy){
       typedef GpuVectorCF vec;
       vec ret;
@@ -421,10 +431,18 @@ struct Vsplat{
       ret.z.y = in.z.x*(-1.0);
       return ret;
     }
+    */
   };
 
   struct TimesI{
-    //Complex single
+    template<class datum>
+      accelerator_inline GpuComplex<datum>operator()(GpuComplex<datum> in,GpuComplex<datum> dummy){
+      GpuComplex<datum> ret;
+      ret.z.x = in.z.y*(-1.0);
+      ret.z.y = in.z.x;
+      return ret;
+    }
+    /*
     accelerator_inline GpuVectorCF operator()(GpuVectorCF in,GpuVectorCF dummy){
       typedef GpuVectorCF vec;
       vec ret;
@@ -438,7 +456,8 @@ struct Vsplat{
       ret.z.x = in.z.y*(-1.0);
       ret.z.y = in.z.x;
       return ret;
-    }
+      }*/
+    
   };
 
   struct Permute{
@@ -481,6 +500,7 @@ struct Vsplat{
   };
 
 
+
 //////////////////////////////////////////////
 // Some Template specialization
 
@@ -513,3 +533,4 @@ struct Vsplat{
   typedef Conj        ConjSIMD;
   typedef TimesMinusI TimesMinusISIMD;
   typedef TimesI      TimesISIMD;
+

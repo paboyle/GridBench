@@ -180,26 +180,33 @@
   struct Permute{
     
     static inline __m512 Permute0(__m512 in){
-      return _mm512_shuffle_f32x4(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      __m512 ret = _mm512_shuffle_f32x4(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      return ret;
     };
     static inline __m512 Permute1(__m512 in){
-      return _mm512_shuffle_f32x4(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      __m512 ret = _mm512_shuffle_f32x4(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      return ret;
     };
     static inline __m512 Permute2(__m512 in){
-      return _mm512_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      __m512 ret = _mm512_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      return ret;
     };
     static inline __m512 Permute3(__m512 in){
-      return _mm512_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      __m512 ret = _mm512_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      return ret;
     };
 
     static inline __m512d Permute0(__m512d in){
-      return _mm512_shuffle_f64x2(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      __m512d ret = _mm512_shuffle_f64x2(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2));
+      return ret;
     };
     static inline __m512d Permute1(__m512d in){
-      return _mm512_shuffle_f64x2(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      __m512d ret = _mm512_shuffle_f64x2(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      return ret;
     };
     static inline __m512d Permute2(__m512d in){
-      return _mm512_shuffle_pd(in,in,0x55);
+      __m512d ret =  _mm512_shuffle_pd(in,in,0x55);
+      return ret;
     };
     static inline __m512d Permute3(__m512d in){
       return in;

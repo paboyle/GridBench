@@ -68,6 +68,12 @@ int main(int argc, char* argv[])
   Vector<double>   Psi_cpp(fmax); bcopy(Psi_cpp_static,&Psi_cpp[0],fmax*sizeof(double));
   Vector<uint64_t> nbr(nsite*Ls*8); bcopy(nbr_static,&nbr[0],nbrmax*sizeof(uint64_t));
   Vector<uint8_t>  prm(nsite*Ls*8); bcopy(prm_static,&prm[0],nbrmax*sizeof(uint8_t));
+
+  Vector<float>   fU(umax);       
+  Vector<float>   fPsi(fmax);     
+  Vector<float>   fPhi(fmax);
+  Vector<float>   fPsi_cpp(fmax); 
+
   
 #ifdef RRII
   const int Nsimd = vComplexD::Nsimd();
@@ -81,6 +87,9 @@ int main(int argc, char* argv[])
     	        +      sc*2*Nsimd;
 	Phi    [idx + ri*Nsimd + n ] =     Phi_static[idx + n*2 + ri];
 	Psi_cpp[idx + ri*Nsimd + n ] = Psi_cpp_static[idx + n*2 + ri];
+	fPhi    [idx + ri*Nsimd + n ] =     Phi_static[idx + n*2 + ri];
+	fPsi_cpp[idx + ri*Nsimd + n ] = Psi_cpp_static[idx + n*2 + ri];
+
       }
     }
   }}}
@@ -89,6 +98,7 @@ int main(int argc, char* argv[])
     for(uint32_t n=0;n<vComplexD::Nsimd();n++){
       for(uint32_t ri=0;ri<2;ri++){
 	U[ss*Nsimd*2 + ri*Nsimd + n ] = U_static[ss*Nsimd*2 + n*2 + ri];
+	fU[ss*Nsimd*2 + ri*Nsimd + n ] = U_static[ss*Nsimd*2 + n*2 + ri];
       }
     }
   }
@@ -98,16 +108,13 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
   std::cout << "Calling dslash_kernel "<<std::endl;
 
-  typedef  std::chrono::system_clock          Clock;
-  typedef  std::chrono::time_point<Clock> TimePoint;
-  typedef  std::chrono::microseconds          Usecs;
 
-  Usecs elapsed;
   double flops = 1320.0*vol;
-  int nrep=300; // cache warm
-  TimePoint start = Clock::now();
+  int nrep=100; // cache warm
 
-  dslash_kernel<vComplexD>(nrep,
+#define DOUBLE
+#ifdef DOUBLE
+  double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],
 			   (vComplexD *)&Psi[0],
 			   (vComplexD *)&Phi[0],
@@ -115,19 +122,33 @@ int main(int argc, char* argv[])
 			   nsite,
 			   Ls,
 			   &prm[0]);
+#else
+  double usec = dslash_kernel<vComplexF>(nrep,
+			   (vComplexF *)&fU[0],
+			   (vComplexF *)&fPsi[0],
+			   (vComplexF *)&fPhi[0],
+			   &nbr[0],
+			   nsite,
+			   Ls,
+			   &prm[0]);
 
-  elapsed = std::chrono::duration_cast<Usecs>(Clock::now()-start);   
+  // Copy back to double
+  for(uint64_t i=0; i<fmax;i++){
+    Psi[i]=fPsi[i];
+  }
+#endif
+
   std::cout << std::endl;
-  std::cout <<"\t"<< nrep*flops/elapsed.count()/1000. <<
-    " Gflop/s in double precision; kernel call "<<elapsed.count()/nrep <<" microseconds "<<std::endl;
+  std::cout <<"\t"<< nrep*flops/usec/1000. << " Gflop/s in double precision; kernel call "<<usec/nrep <<" microseconds "<<std::endl;
   std::cout << std::endl;
 
   // Check results
-  vComplexD *Psi_p = (vComplexD *) &Psi[0];
-  vComplexD *Psi_cpp_p = (vComplexD *) &Psi_cpp[0];
   double err=0;
   double nref=0;
   double nres=0;
+
+  vComplexD *Psi_p = (vComplexD *) &Psi[0];
+  vComplexD *Psi_cpp_p = (vComplexD *) &Psi_cpp[0];
   for(uint64_t i=0; i<fmax;i++){
     err += (Psi_cpp[i]-Psi[i])*(Psi_cpp[i]-Psi[i]);
     nres += Psi[i]*Psi[i];
@@ -135,9 +156,10 @@ int main(int argc, char* argv[])
   };
 
   std::cout<< "normdiff "<< err<< " ref "<<nref<<" result "<<nres<<std::endl;
-  for(int i=0;i<100;i++){
+  //  for(int i=0;i<fmax;i++){
+  for(int i=0;i<200;i++){
     //    std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
   }
-  assert(err <= 1.0e-10);  
+  assert(err <= 1.0e-6);  
   return 0;
 }

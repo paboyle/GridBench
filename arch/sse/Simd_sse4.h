@@ -269,12 +269,14 @@ Author: neo <cossu@post.kek.jp>
     //Complex single
     inline __m128 operator()(__m128 in, __m128 ret){
       __m128 tmp =_mm_addsub_ps(_mm_setzero_ps(),in); // r,-i
-      return _mm_shuffle_ps(tmp,tmp,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      ret = _mm_shuffle_ps(tmp,tmp,_MM_SELECT_FOUR_FOUR(2,3,0,1));
+      return ret;
     }
     //Complex double
     inline __m128d operator()(__m128d in, __m128d ret){
       __m128d tmp =_mm_addsub_pd(_mm_setzero_pd(),in); // r,-i
-      return _mm_shuffle_pd(tmp,tmp,0x1);
+      ret = _mm_shuffle_pd(tmp,tmp,0x1);
+      return ret;
     }
 
 
@@ -284,22 +286,26 @@ Author: neo <cossu@post.kek.jp>
     //Complex single
     inline __m128 operator()(__m128 in, __m128 ret){
       __m128 tmp =_mm_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1));
-      return _mm_addsub_ps(_mm_setzero_ps(),tmp); // r,-i
+      ret = _mm_addsub_ps(_mm_setzero_ps(),tmp); // r,-i
+      return ret;
     }
     //Complex double
     inline __m128d operator()(__m128d in, __m128d ret){
       __m128d tmp = _mm_shuffle_pd(in,in,0x1);
-      return _mm_addsub_pd(_mm_setzero_pd(),tmp); // r,-i
+      ret = _mm_addsub_pd(_mm_setzero_pd(),tmp); // r,-i
+      return ret;
     }
   };
 
   struct Permute{
 
     static inline __m128 Permute0(__m128 in){
-      return _mm_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2)); //AB CD -> CD AB
+      __m128 tmp = _mm_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(1,0,3,2)); //AB CD -> CD AB
+      return tmp;
     };
     static inline __m128 Permute1(__m128 in){
-      return _mm_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //AB CD -> BA DC
+      __m128 tmp = _mm_shuffle_ps(in,in,_MM_SELECT_FOUR_FOUR(2,3,0,1)); //AB CD -> BA DC
+      return tmp;
     };
     static inline __m128 Permute2(__m128 in){
       return in;
@@ -309,7 +315,8 @@ Author: neo <cossu@post.kek.jp>
     };
 
     static inline __m128d Permute0(__m128d in){ //AB -> BA
-      return _mm_shuffle_pd(in,in,0x1);
+      __m128d tmp= _mm_shuffle_pd(in,in,0x1);
+      return tmp;
     };
     static inline __m128d Permute1(__m128d in){
       return in;
