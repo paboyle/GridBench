@@ -127,7 +127,7 @@ bench.sycl: bench_sycl.cc $(SIMPLEDATA) dslash_simple.h Makefile
 #
 
 clean:
-	rm -f  bench.avx512 bench.avx2 bench.avx bench.sse bench.gen  bench.simple TableGenerate bench.gpu bench.sycl
+	rm -f  bench.avx512 bench.avx2 bench.avx bench.sse bench.gen  bench.simple TableGenerate bench.gpu bench.sycl bench.rrii*
 	rm -rf  *.dSYM*
 	rm -f  *~
 
