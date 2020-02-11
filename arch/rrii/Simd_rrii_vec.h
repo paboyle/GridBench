@@ -1,10 +1,3 @@
-// Enable this to switch on or off.
-// Add CUDA through this SIMD target later
-#include <CL/sycl.hpp>
-
-#define GRID_SYCL
-#define GRID_SYCL_SIMT
-
 typedef float     vfloat  __attribute__ ((vector_size (4*sizeof(float))));
 typedef double    vdouble __attribute__ ((vector_size (4*sizeof(double))));
 typedef Integer vinteger  __attribute__ ((vector_size (4*sizeof(uint32_t))));

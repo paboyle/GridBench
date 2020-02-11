@@ -425,6 +425,8 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 #endif
 
 #ifdef GRID_SYCL
+#include <CL/sycl.hpp>
+
 // Sycl loop
 template<class SimdVec>
 double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_t *nbrp,uint64_t nsite,uint64_t Ls,uint8_t *prmp)
@@ -455,11 +457,12 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
   cl::sycl::buffer<uint8_t,1>  prm_b  { &prmp[begin],nbrmax};
 
   // Create queue
-#if 1
+#if GRID_SYCL_GPU
   cl::sycl::queue q{cl::sycl::gpu_selector()};
 #else
-  cl::sycl::default_selector device_selector;
-  cl::sycl::queue q(device_selector);
+  cl::sycl::queue q{cl::sycl::cpu_selector()};
+  //  cl::sycl::default_selector device_selector;
+  //  cl::sycl::queue q(device_selector);
 #endif
 
   for(int rep=0;rep<nrep;rep++) {

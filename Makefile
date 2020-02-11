@@ -73,7 +73,8 @@ GPU_DATA      := arch/avx512/static_data.cc
 LDLIBS    := -lm
 LDFLAGS   := 
 
-all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple bench.rrii bench.sycl
+all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple bench.sycl \
+	bench.rrii.omp.cpu bench.rrii.sycl.cpu bench.rrii.sycl.cpu.simt  bench.rrii.sycl.gpu bench.rrii.sycl.gpu.simt
 
 bench.avx512: bench.cc $(AVX512_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX512_CXXFLAGS) bench.cc $(AVX512_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx512
@@ -81,8 +82,20 @@ bench.avx512: bench.cc $(AVX512_DATA)  WilsonKernelsHand.h Makefile
 bench.avx2: bench.cc $(AVX2_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX2_CXXFLAGS) bench.cc $(AVX2_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx2
 
-bench.rrii: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
-	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii
+bench.rrii.omp.cpu: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.omp.cpu 
+
+bench.rrii.sycl.cpu: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.sycl.cpu -DGRID_SYCL
+
+bench.rrii.sycl.cpu.simt: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.sycl.cpu.simt -DGRID_SYCL -DGRID_SYCL_SIMT
+
+bench.rrii.sycl.gpu: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.sycl.gpu  -DGRID_SYCL -DGRID_SYCL_GPU
+
+bench.rrii.sycl.gpu.simt: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.sycl.gpu.simt -DGRID_SYCL -DGRID_SYCL_SIMT -DGRID_SYCL_GPU
 
 bench.avx: bench.cc $(AVX_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX_CXXFLAGS) bench.cc $(AVX_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx
