@@ -1,10 +1,11 @@
 # Use this utility to perform a make from the command-line using mpicc
 
-GRIDBASE =${HOME}/QCD/BCG/install
+GRIDBASE =${HOME}/Grid/install
 
 AVX512_CFG=$(GRIDBASE)-avx512/bin/grid-config
 AVX_CFG   =$(GRIDBASE)-avx/bin/grid-config
 SSE_CFG   =$(GRIDBASE)-sse/bin/grid-config
+GEN_CFG   =$(GRIDBASE)-gen64/bin/grid-config
 
 AVX512_CXX       := $(shell ${AVX512_CFG} --cxx)  
 AVX512_CXXFLAGS  := $(shell ${AVX512_CFG} --cxxflags) -I$(GRIDBASE)-avx512/include  -DAVX512
@@ -21,12 +22,22 @@ SSE_CXXFLAGS  := $(shell ${SSE_CFG} --cxxflags) -I$(GRIDBASE)-sse/include  -DSSE
 SSE_LIBS      := $(shell ${SSE_CFG} --libs)    -lGrid 
 SSE_LDFLAGS   := $(shell ${SSE_CFG} --ldflags) -L$(GRIDBASE)-sse/lib 
 
-all: avx512 avx sse
+GEN_CXX       := $(shell ${GEN_CFG} --cxx)  
+GEN_CXXFLAGS  := $(shell ${GEN_CFG} --cxxflags) -I$(GRIDBASE)-gen64/include  -DGEN -DGEN_SIMD_WIDTH=64
+GEN_LIBS      := $(shell ${GEN_CFG} --libs)    -lGrid 
+GEN_LDFLAGS   := $(shell ${GEN_CFG} --ldflags) -L$(GRIDBASE)-gen64/lib 
+
+
+all: avx512 avx sse gen
 
 avx512:
 	$(AVX512_CXX) TableGenerate.cc $(AVX512_CXXFLAGS) $(AVX512_LIBS) $(AVX512_LDFLAGS) -o TableGenerate
 	sde -skx -- ./TableGenerate 
 	mv static_data.h static_data.cc arch/avx512/
+gen:
+	$(GEN_CXX) TableGenerate.cc $(GEN_CXXFLAGS) $(GEN_LIBS) $(GEN_LDFLAGS) -o TableGenerate
+	./TableGenerate 
+	mv static_data.h static_data.cc arch/gen64/
 
 avx:
 	$(AVX_CXX) TableGenerate.cc $(AVX_CXXFLAGS) $(AVX_LIBS) $(AVX_LDFLAGS) -o TableGenerate
