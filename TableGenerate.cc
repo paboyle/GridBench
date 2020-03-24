@@ -7,7 +7,6 @@
 
 #include <Grid/Grid.h>
 using namespace Grid;
-using namespace Grid::QCD;
 
 const int Ls=8;
 
@@ -19,7 +18,7 @@ int main(int argc, char* argv[])
   ////////////////////////////////////////////////////////////////////
   Grid_init(&argc,&argv);
 
-  std::vector<int> latt4 = GridDefaultLatt();
+  Coordinate latt4 = GridDefaultLatt();
 
   GridCartesian         * UGrid   = SpaceTimeGrid::makeFourDimGrid(GridDefaultLatt(), 
 								   GridDefaultSimd(Nd,vComplex::Nsimd()),
@@ -35,9 +34,9 @@ int main(int argc, char* argv[])
   GridParallelRNG          RNG5(FGrid);  RNG5.SeedFixedIntegers(seeds5);
 
   LatticeFermion src   (FGrid); random(RNG5,src);
-  LatticeFermion result(FGrid); result=zero;
-  LatticeFermion result_cpp(FGrid); result_cpp=zero;
-  LatticeFermion    ref(FGrid);    ref=zero;
+  LatticeFermion result(FGrid); result=Zero();
+  LatticeFermion result_cpp(FGrid); result_cpp=Zero();
+  LatticeFermion    ref(FGrid);    ref=Zero();
   LatticeFermion    err(FGrid);
 
   uint64_t nsite = UGrid->oSites();
@@ -56,10 +55,15 @@ int main(int argc, char* argv[])
   uint64_t umax   = nsite*18*8*vComplex::Nsimd(); 
   uint64_t fmax   = nsite*24*Ls*vComplex::Nsimd();
   uint64_t nbrmax = nsite*Ls*8;
-  double * U   = (double *)& Uds._odata[0];
-  double * Psi = (double *)& result._odata[0];
-  double * Phi = (double *)& src._odata[0];
-  double * Psi_cpp = (double *)& ref._odata[0];
+  auto Uds_v = Uds.View();
+  auto result_v = result.View();
+  auto src_v = src.View();
+  auto ref_v = ref.View();
+
+  Real * U   = (Real *)& Uds_v[0];
+  Real * Psi = (Real *)& result_v[0];
+  Real * Phi = (Real *)& src_v[0];
+  Real * Psi_cpp = (Real *)& ref_v[0];
 
 
   std::cout << " umax " <<umax<<std::endl;
