@@ -22,7 +22,7 @@ AVX512_DATA   := arch/avx512/static_data.cc
 AVX2_DATA     := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 AVX_DATA      := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 SSE_DATA      := arch/sse/static_data.cc
-RRII_DATA     := arch/avx512/static_data.cc
+RRII_DATA     := arch/gen64/static_data.cc
 
 #############################################
 # Intel
@@ -40,7 +40,7 @@ AVX512_CXXFLAGS  := -DAVX512 -mavx512f -mavx512pf -mavx512er -mavx512cd -O3 $(OM
 AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
-RRII_CXXFLAGS     := -DRRII  -mavx2 -mfma  $(OMP) -DGEN_SIMD_WIDTH=32
+RRII_CXXFLAGS     := -DRRII  -mavx2 -mfma  $(OMP) -DGEN_SIMD_WIDTH=64
 
 #############################################
 # G++
