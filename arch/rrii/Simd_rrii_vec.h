@@ -1,6 +1,13 @@
+#if 0
 typedef float     vfloat  __attribute__ ((vector_size (4*sizeof(float))));
 typedef double    vdouble __attribute__ ((vector_size (4*sizeof(double))));
 typedef Integer vinteger  __attribute__ ((vector_size (4*sizeof(uint32_t))));
+#else
+#include <CL/sycl.hpp>
+typedef cl::sycl::vec<float,8> vfloat;
+typedef cl::sycl::vec<double,8> vdouble;
+typedef cl::sycl::vec<uint32_t,8> vinteger;
+#endif
 
 template<class datum> struct wordsize {  };
 template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; typedef float word_type; };
