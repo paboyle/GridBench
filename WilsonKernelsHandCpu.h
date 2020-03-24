@@ -393,8 +393,21 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
   TimePoint start; double usec;
   for(int rep=0;rep<nrep;rep++){
     if ( rep==1 ) start = Clock::now();
+    //    static_assert(std::is_trivially_constructible<Simd>::value," SIMD is not trivial constructible");
+    //    static_assert(std::is_trivially_constructible<SiteSpinor>::value," not trivial constructible");
+    //    static_assert(std::is_trivially_constructible<SiteDoubledGaugeField>::value," not trivial constructible");
+    //    static_assert(std::is_trivially_default_constructible<Simd>::value," SIMD is not trivial default constructible");
+    //    static_assert(std::is_trivially_copyable<Simd>::value," SIMD is not copy constructible");
+    //    static_assert(std::is_trivially_copyable<sycl::vec<double,4> >::value," sycl::vec is trivially copy constructible");
 #ifdef OMP
-#pragma omp parallel for
+#define OMP5
+  #ifdef OMP5
+  #warning "OpenMP 5.0 target pragma"
+  #pragma omp target map(in[0:nsite*Ls], out[0:nsite*Ls],U[0:nsite],nbr[0:nsite*8*Ls],prm[0:nsite*8*Ls])
+  #pragma omp teams distribute parallel for
+  #else
+  #pragma omp parallel for
+  #endif
 #endif
   for(uint64_t ssite=0;ssite<nsite;ssite++){
 
@@ -415,8 +428,8 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
       HAND_STENCIL_LEG(TP_PROJ,0,Tm,TP_RECON_ACCUM);
       HAND_RESULT(ss);
       ss++;
+      }
     }
-  }
   }
   Usecs elapsed =std::chrono::duration_cast<Usecs>(Clock::now()-start);
   usec = elapsed.count();
@@ -481,17 +494,21 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	typedef SimdVec SiteDoubledGaugeField[8][3][3];
 
 #ifdef GRID_SYCL_SIMT
-	cl::sycl::range<3> global{Nsimd,Ls,nsite};
-	cl::sycl::range<3> local {Nsimd,1,1};
+	//	cl::sycl::range<3> global{Nsimd,Ls,nsite};
+	//	cl::sycl::range<3> local {Nsimd,1,1};
+	cl::sycl::range<3> global{nsite,Ls,Nsimd};
+	cl::sycl::range<3> local {2,2,Nsimd};
 #else
-	cl::sycl::range<3> global{1,Ls,nsite};
+	//	cl::sycl::range<3> global{1,Ls,nsite};
+	//	cl::sycl::range<3> local {1,Ls,1};
+	cl::sycl::range<3> global{nsite,Ls,1};
 	cl::sycl::range<3> local {1,Ls,1};
 #endif
 	cgh.parallel_for<class dslash>(cl::sycl::nd_range<3>(global,local), [=] (cl::sycl::nd_item<3> item) {
 
-	    auto mylane = item.get_global_id(0);
+	    auto mylane = item.get_global_id(2);
 	    auto    s   = item.get_global_id(1);
-	    auto   sU   = item.get_global_id(2);
+	    auto   sU   = item.get_global_id(0);
 	    auto    ss  = s+Ls*sU;
 
 	    HAND_DECLARATIONS(Simd);
