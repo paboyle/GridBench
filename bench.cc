@@ -44,7 +44,7 @@
 #endif
 
 #ifdef RRII
-#include "arch/avx512/static_data.h"
+#include "arch/gen64/static_data.h"
 #endif
 
 
@@ -110,9 +110,8 @@ int main(int argc, char* argv[])
 
 
   double flops = 1320.0*vol;
-  int nrep=100; // cache warm
-
-#define DOUBLE
+  int nrep=10000; // cache warm
+#undef DOUBLE
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],
