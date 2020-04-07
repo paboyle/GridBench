@@ -4,6 +4,7 @@ typedef double    vdouble __attribute__ ((vector_size (4*sizeof(double))));
 typedef Integer vinteger  __attribute__ ((vector_size (4*sizeof(uint32_t))));
 #else
 #include <CL/sycl.hpp>
+#include <CL/sycl/usm.hpp>
 typedef cl::sycl::vec<float,8> vfloat;
 typedef cl::sycl::vec<double,8> vdouble;
 typedef cl::sycl::vec<uint32_t,8> vinteger;

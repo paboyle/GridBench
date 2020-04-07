@@ -1,7 +1,7 @@
 
 SIMPLEDATA := arch/sse/static_data.cc
 
-OMP:=-std=c++11  -O3 
+OMP:=-std=c++11  -O3 -DSVM
 #OMP:=-std=c++11 -O3
 
 #CXX       := mpicxx-openmpi-devel-clang40
