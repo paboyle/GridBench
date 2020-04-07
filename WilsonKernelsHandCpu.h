@@ -515,7 +515,7 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	//	cl::sycl::range<3> global{Nsimd,Ls,nsite};
 	//	cl::sycl::range<3> local {Nsimd,1,1};
 	cl::sycl::range<3> global{nsite,Ls,Nsimd};
-	cl::sycl::range<3> local {2,2,Nsimd};
+	cl::sycl::range<3> local {1,Ls,Nsimd};
 #else
 	//	cl::sycl::range<3> global{1,Ls,nsite};
 	//	cl::sycl::range<3> local {1,Ls,1};
