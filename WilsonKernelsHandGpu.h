@@ -378,7 +378,7 @@ accelerator_inline void dslash_kernel_gpu_site(Simd *Up,Simd *outp,Simd *inp,uin
 #endif
 }
 
-const uint32_t gpu_threads = 128;
+const uint32_t gpu_threads = 64;
 
 template<class Simd>
 double dslash_kernel_gpu(int nrep,Simd *Up,Simd *outp,Simd *inp,uint64_t *nbr,uint64_t nsite,uint64_t Ls,uint8_t *prm)
