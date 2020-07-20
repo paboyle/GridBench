@@ -1,6 +1,14 @@
 #pragma once
 #include <stdio.h>
 
+
+#ifdef GRID_SYCL_SIMT
+//#define synchronise(A) item.barrier(cl::sycl::access::fence_space::local_space);
+#define synchronise(A) 
+#else
+#define synchronise(A) 
+#endif
+
 #if defined(GRID_SYCL_SIMT) || defined(GRID_NVCC)
 #define LOAD_CHIMU(ptype)		\
   {const SiteSpinor & ref (in[offset]);	\
@@ -289,7 +297,7 @@
   result_31-= UChi_11;	\
   result_32-= UChi_12;
 
-//  item.barrier(cl::sycl::access::fence_space::local_space);\
+//  
 
 #define HAND_STENCIL_LEG(PROJ,PERM,DIR,RECON)		\
   offset = nbr[ss*8+DIR];				\
@@ -299,6 +307,7 @@
   if ( perm) {						\
     PERMUTE_DIR(PERM);					\
   }							\
+  synchronise(); 					\
   MULT_2SPIN(DIR);					\
   RECON;					
 
@@ -497,7 +506,7 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	//	cl::sycl::range<3> global{Nsimd,Ls,nsite};
 	//	cl::sycl::range<3> local {Nsimd,1,1};
 	cl::sycl::range<3> global{nsite,Ls,Nsimd};
-	cl::sycl::range<3> local {2,2,Nsimd};
+	cl::sycl::range<3> local {1,Ls,Nsimd};
 #else
 	//	cl::sycl::range<3> global{1,Ls,nsite};
 	//	cl::sycl::range<3> local {1,Ls,1};
