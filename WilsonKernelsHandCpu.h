@@ -467,36 +467,54 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
   uint64_t end  =NN;
 
   {
+  const uint64_t _umax=nsite*9*8;
+  const uint64_t _fmax=nsite*12*Ls;
+  const uint64_t _nbrmax=nsite*Ls*8;
   cl::sycl::range<1> num{NN};
-  cl::sycl::range<1> umax{nsite*9*8};
-  cl::sycl::range<1> fmax{nsite*12*Ls};
-  cl::sycl::range<1> nbrmax{nsite*Ls*8};
+  cl::sycl::range<1> umax{_umax};
+  cl::sycl::range<1> fmax{_fmax};
+  cl::sycl::range<1> nbrmax{_nbrmax};
 
+    // Create queue
+#if GRID_SYCL_GPU
+  auto sel =cl::sycl::gpu_selector();
+#else
+  auto sel =cl::sycl::cpu_selector();
+#endif
+  cl::sycl::queue q(sel);
+
+#ifdef SVM
+  SimdVec * Usvm  =(SimdVec *) malloc_shared(_umax*sizeof(SimdVec),q);
+  SimdVec * insvm =(SimdVec *) malloc_shared(_fmax*sizeof(SimdVec),q);
+  SimdVec * outsvm=(SimdVec *) malloc_shared(_fmax*sizeof(SimdVec),q);
+  uint64_t* nbrsvm=(uint64_t *) malloc_shared(_nbrmax*sizeof(uint64_t),q);
+  uint8_t * prmsvm=(uint8_t  *) malloc_shared(_nbrmax*sizeof(uint8_t),q);
+  std::cout << "SVM allocated arrays" <<std::endl;
+  for(uint64_t n=0;n<_umax;n++) Usvm[n] = Up[n];
+  for(uint64_t n=0;n<_fmax;n++) insvm[n] = inp[n];
+  for(uint64_t n=0;n<_nbrmax;n++) nbrsvm[n] = nbrp[n];
+  for(uint64_t n=0;n<_nbrmax;n++) prmsvm[n] = prmp[n];
+  std::cout << "SVM assigned arrays" <<std::endl;
+#else
   cl::sycl::buffer<SimdVec,1>     Up_b   { &  Up[begin],umax};
   cl::sycl::buffer<SimdVec,1>     inp_b  { & inp[begin],fmax};
   cl::sycl::buffer<SimdVec,1>     outp_b { &outp[begin],fmax};
   cl::sycl::buffer<uint64_t,1> nbr_b  { &nbrp[begin],nbrmax};
   cl::sycl::buffer<uint8_t,1>  prm_b  { &prmp[begin],nbrmax};
-
-  // Create queue
-#if GRID_SYCL_GPU
-  cl::sycl::queue q{cl::sycl::gpu_selector()};
-#else
-  cl::sycl::queue q{cl::sycl::cpu_selector()};
-  //  cl::sycl::default_selector device_selector;
-  //  cl::sycl::queue q(device_selector);
 #endif
-
+  
   for(int rep=0;rep<nrep;rep++) {
     if ( rep==1 ) start = Clock::now();
+
     q.submit([&](handler &cgh) {
         // In the kernel A and B are read, but C is written
+#ifndef SVM	
         auto Up_k   =  Up_b.template get_access<access::mode::read>(cgh);
         auto inp_k  = inp_b.template get_access<access::mode::read>(cgh); 
         auto nbr_k  = nbr_b.template get_access<access::mode::read>(cgh); 
         auto prm_k  = prm_b.template get_access<access::mode::read>(cgh); 
 	auto outp_k =outp_b.template get_access<access::mode::read_write>(cgh); 
-
+#endif
 	typedef decltype(coalescedRead(inp[0],0)) Simd;
 	typedef SimdVec SiteSpinor[4][3];
 	typedef SimdVec SiteHalfSpinor[2][3];
@@ -521,15 +539,21 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	    auto    ss  = s+Ls*sU;
 
 	    HAND_DECLARATIONS(Simd);
-
+#ifdef SVM
+	    SiteDoubledGaugeField *U  = (SiteDoubledGaugeField *) Usvm;
+	    SiteSpinor *out = (SiteSpinor *) outsvm;
+	    SiteSpinor *in  = (SiteSpinor *) insvm;
+	    uint64_t *nbr   = (uint64_t *) nbrsvm;
+	    uint8_t *prm    = (uint8_t  *) prmsvm;
+#else
+	    SiteDoubledGaugeField *U  = (SiteDoubledGaugeField *) Up_k.get_pointer().get();
 	    SiteSpinor *out = (SiteSpinor *) outp_k.get_pointer().get();
 	    SiteSpinor *in  = (SiteSpinor *) inp_k.get_pointer().get();
-	    SiteDoubledGaugeField *U  = (SiteDoubledGaugeField *) Up_k.get_pointer().get();
 	    uint64_t *nbr   = (uint64_t *) nbr_k.get_pointer().get();
 	    uint8_t *prm    = (uint8_t  *) prm_k.get_pointer().get();
+#endif
 	    
 	    int offset,perm;
-
 	    HAND_STENCIL_LEG(XM_PROJ,3,Xp,XM_RECON);
 	    HAND_STENCIL_LEG(YM_PROJ,2,Yp,YM_RECON_ACCUM);
 	    HAND_STENCIL_LEG(ZM_PROJ,1,Zp,ZM_RECON_ACCUM);
@@ -544,8 +568,19 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	
    }); //< End of our commands for this queue
   }
+
+  q.wait();
   //< Buffer outp_b goes out of scope and copies back values to outp
   // Queue out of scope, waits
+#ifdef SVM	
+  for(int n=0;n<_fmax;n++) outp[n] = outsvm[n];
+
+  free(Usvm,q);
+  free(insvm,q);
+  free(outsvm,q);
+  free(nbrsvm,q);
+  free(prmsvm,q);
+#endif
   }
   Usecs elapsed =std::chrono::duration_cast<Usecs>(Clock::now()-start);
   usec = elapsed.count();

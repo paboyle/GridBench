@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 
   double flops = 1320.0*vol;
   int nrep=10000; // cache warm
-#undef DOUBLE
+#define DOUBLE
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],
@@ -138,7 +138,11 @@ int main(int argc, char* argv[])
 #endif
 
   std::cout << std::endl;
+#ifdef DOUBLE
   std::cout <<"\t"<< nrep*flops/usec/1000. << " Gflop/s in double precision; kernel call "<<usec/nrep <<" microseconds "<<std::endl;
+#else
+  std::cout <<"\t"<< nrep*flops/usec/1000. << " Gflop/s in single precision; kernel call "<<usec/nrep <<" microseconds "<<std::endl;
+#endif
   std::cout << std::endl;
 
   // Check results
@@ -156,7 +160,7 @@ int main(int argc, char* argv[])
 
   std::cout<< "normdiff "<< err<< " ref "<<nref<<" result "<<nres<<std::endl;
   //  for(int i=0;i<fmax;i++){
-  for(int i=0;i<200;i++){
+  for(int i=0;i<20;i++){
     std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
   }
   assert(err <= 1.0e-6);  
