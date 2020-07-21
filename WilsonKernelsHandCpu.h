@@ -12,18 +12,18 @@
 #if defined(GRID_SYCL_SIMT) || defined(GRID_NVCC)
 #define LOAD_CHIMU(ptype)		\
   {const SiteSpinor & ref (in[offset]);	\
-    Chimu_00=coalescedReadPermute(ref[0][0],ptype,perm,mylane);	\
-    Chimu_01=coalescedReadPermute(ref[0][1],ptype,perm,mylane);	\
-    Chimu_02=coalescedReadPermute(ref[0][2],ptype,perm,mylane);	\
-    Chimu_10=coalescedReadPermute(ref[1][0],ptype,perm,mylane);	\
-    Chimu_11=coalescedReadPermute(ref[1][1],ptype,perm,mylane);	\
-    Chimu_12=coalescedReadPermute(ref[1][2],ptype,perm,mylane);	\
-    Chimu_20=coalescedReadPermute(ref[2][0],ptype,perm,mylane);	\
-    Chimu_21=coalescedReadPermute(ref[2][1],ptype,perm,mylane);	\
-    Chimu_22=coalescedReadPermute(ref[2][2],ptype,perm,mylane);	\
-    Chimu_30=coalescedReadPermute(ref[3][0],ptype,perm,mylane);	\
-    Chimu_31=coalescedReadPermute(ref[3][1],ptype,perm,mylane);	\
-    Chimu_32=coalescedReadPermute(ref[3][2],ptype,perm,mylane);	}
+    Chimu_00=coalescedReadPermute<ptype>(ref[0][0],perm,mylane);	\
+    Chimu_01=coalescedReadPermute<ptype>(ref[0][1],perm,mylane);	\
+    Chimu_02=coalescedReadPermute<ptype>(ref[0][2],perm,mylane);	\
+    Chimu_10=coalescedReadPermute<ptype>(ref[1][0],perm,mylane);	\
+    Chimu_11=coalescedReadPermute<ptype>(ref[1][1],perm,mylane);	\
+    Chimu_12=coalescedReadPermute<ptype>(ref[1][2],perm,mylane);	\
+    Chimu_20=coalescedReadPermute<ptype>(ref[2][0],perm,mylane);	\
+    Chimu_21=coalescedReadPermute<ptype>(ref[2][1],perm,mylane);	\
+    Chimu_22=coalescedReadPermute<ptype>(ref[2][2],perm,mylane);	\
+    Chimu_30=coalescedReadPermute<ptype>(ref[3][0],perm,mylane);	\
+    Chimu_31=coalescedReadPermute<ptype>(ref[3][1],perm,mylane);	\
+    Chimu_32=coalescedReadPermute<ptype>(ref[3][2],perm,mylane);	}
 
 #define PERMUTE_DIR(dir) ;
 
@@ -531,8 +531,12 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	cl::sycl::range<3> global{nsite,Ls,1};
 	cl::sycl::range<3> local {1,Ls,1};
 #endif
-	cgh.parallel_for<class dslash>(cl::sycl::nd_range<3>(global,local), [=] (cl::sycl::nd_item<3> item) {
-
+	cgh.parallel_for<class dslash>(cl::sycl::nd_range<3>(global,local),
+				       [=] (cl::sycl::nd_item<3> item)
+				       [[cl::intel_reqd_sub_group_size(8)]]
+	{
+ 	    auto sg = item.get_sub_group();
+	  
 	    auto mylane = item.get_global_id(2);
 	    auto    s   = item.get_global_id(1);
 	    auto   sU   = item.get_global_id(0);

@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 
   double flops = 1320.0*vol*nreplica;
   int nrep=100; // cache warm
-#define DOUBLE
+#undef DOUBLE
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],
