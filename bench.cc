@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     bcopy(nbr_static,&nbr[n],nbrmax*sizeof(uint64_t));
     bcopy(prm_static,&prm[n],nbrmax*sizeof(uint8_t));
     for(int nn=0;nn<nbrmax;nn++){
-      nbr[nn+n]+=nsite*Ls; // Shift the neighbour indexes to point to this replica
+      nbr[nn+n]+=nsite*Ls*replica; // Shift the neighbour indexes to point to this replica
     }
   }
   
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
 
 
   double flops = 1320.0*vol*nreplica;
-  int nrep=100; // cache warm
+  int nrep=1000; // cache warm
 #undef DOUBLE
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
