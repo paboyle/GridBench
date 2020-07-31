@@ -1,3 +1,4 @@
+#define DOUBLE
 
 // Invoke dslash.s - test for compiler-gsnerated code
 #include <stdio.h>
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
   ////////////////////////////////////////////////////////////////////
   // Option 2: copy from static arrays
   ////////////////////////////////////////////////////////////////////
-  uint64_t nreplica = 16;
+  uint64_t nreplica = 4;
   uint64_t umax   = nsite*18*8 *vComplexD::Nsimd(); 
   uint64_t fmax   = nsite*24*Ls*vComplexD::Nsimd(); 
   uint64_t nbrmax = nsite*Ls*8;
@@ -128,8 +129,7 @@ int main(int argc, char* argv[])
 
 
   double flops = 1320.0*vol*nreplica;
-  int nrep=1000; // cache warm
-#undef DOUBLE
+  int nrep=10; // cache warm
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],

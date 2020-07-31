@@ -44,11 +44,11 @@ using namespace cl::sycl;
 template<class vec>
 typename vec::vector_type::scalar_type coalescedRead(const vec &in, int lane){
   typename vec::vector_type::scalar_type ret;
-#ifdef __SYCL_DEVICE_ONLY__
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE))
   typedef typename vec::vector_type::word_type Float;
-  const multi_ptr<float,access::address_space::global_space> pin((float *)&in);
-  cl::sycl::vec<float,2> tmp;
-  tmp = intel_sub_group().load<2,float,access::address_space::global_space>(pin);
+  const multi_ptr<Float,access::address_space::global_space> pin((Float *)&in);
+  cl::sycl::vec<Float,2> tmp;
+  tmp = intel_sub_group().load<2,Float,access::address_space::global_space>(pin);
   ret.z.x = tmp.x();
   ret.z.y = tmp.y();
 #else
@@ -59,13 +59,13 @@ typename vec::vector_type::scalar_type coalescedRead(const vec &in, int lane){
 }
 template<class vec>
 void coalescedWrite(vec &out,const typename vec::vector_type::scalar_type &in,int lane){
-#ifdef  __SYCL_DEVICE_ONLY__
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE))
   typedef typename vec::vector_type::word_type Float;
-  multi_ptr<float,access::address_space::global_space> pout((float *)&out);
-  cl::sycl::vec<float,2> tmp;
+  multi_ptr<Float,access::address_space::global_space> pout((Float *)&out);
+  cl::sycl::vec<Float,2> tmp;
   tmp.x() = in.z.x;
   tmp.y() = in.z.y;
-  intel_sub_group().store<2,float,access::address_space::global_space>(pout,tmp);
+  intel_sub_group().store<2,Float,access::address_space::global_space>(pout,tmp);
 #else
   out.v.z.x[lane] = in.z.x;
   out.v.z.y[lane] = in.z.y;
@@ -76,13 +76,13 @@ typename vec::vector_type::scalar_type coalescedReadPermute(const vec & __restri
 {
   typename vec::vector_type::scalar_type ret;
   constexpr int mask = vec::Nsimd() >> (ptype + 1);		
-#ifdef  __SYCL_DEVICE_ONLY__
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE))
   typedef typename vec::vector_type::word_type Float;
-  multi_ptr<float,access::address_space::global_space> ptr((float *)&in);
-  auto tmp = intel_sub_group().load<2,float,access::address_space::global_space>(ptr);
+  multi_ptr<Float,access::address_space::global_space> ptr((Float *)&in);
+  auto tmp = intel_sub_group().load<2,Float,access::address_space::global_space>(ptr);
   if(doperm==true){
-    ret.z.x = intel_sub_group().shuffle_xor<float>(tmp.x(),mask);
-    ret.z.y = intel_sub_group().shuffle_xor<float>(tmp.y(),mask);
+    ret.z.x = intel_sub_group().shuffle_xor<Float>(tmp.x(),mask);
+    ret.z.y = intel_sub_group().shuffle_xor<Float>(tmp.y(),mask);
   } else {
     ret.z.x = tmp.x();
     ret.z.y = tmp.y();
