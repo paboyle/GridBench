@@ -535,3 +535,72 @@ struct Vsplat{
   typedef TimesMinusI TimesMinusISIMD;
   typedef TimesI      TimesISIMD;
 
+#if defined(GRID_SYCL_SIMT) 
+#warning "GRID_SYCL_SIMT coalesced reads"
+/*Small support to allow GPU coalesced access*/
+#ifdef GRID_SYCL_SIMT
+static const inline cl::sycl::intel::sub_group intel_sub_group()
+{
+#ifdef __SYCL_DEVICE_ONLY__
+  return cl::sycl::detail::Builder::getNDItem<3>().get_sub_group();
+#else
+  throw cl::sycl::runtime_error("subgroup fail",PI_INVALID_DEVICE);
+#endif
+}
+using namespace cl::sycl;
+#endif
+
+template<class vec>
+typename vec::vector_type::scalar_type coalescedRead(const vec &in, int lane){
+  typename vec::vector_type::scalar_type ret;
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE)) && defined(RRII)
+  typedef typename vec::vector_type::word_type Float;
+  const multi_ptr<Float,access::address_space::global_space> pin((Float *)&in);
+  cl::sycl::vec<Float,2> tmp;
+  tmp = intel_sub_group().load<2,Float,access::address_space::global_space>(pin);
+  ret.z.x = tmp.x();
+  ret.z.y = tmp.y();
+#else
+  ret.z.x = in.v.z.x[lane];
+  ret.z.y = in.v.z.y[lane];
+#endif
+  return ret;
+}
+template<class vec>
+void coalescedWrite(vec &out,const typename vec::vector_type::scalar_type &in,int lane){
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE)) && defined(RRII)
+  typedef typename vec::vector_type::word_type Float;
+  multi_ptr<Float,access::address_space::global_space> pout((Float *)&out);
+  cl::sycl::vec<Float,2> tmp;
+  tmp.x() = in.z.x;
+  tmp.y() = in.z.y;
+  intel_sub_group().store<2,Float,access::address_space::global_space>(pout,tmp);
+#else
+  out.v.z.x[lane] = in.z.x;
+  out.v.z.y[lane] = in.z.y;
+#endif
+}
+template<int ptype,class vec>
+typename vec::vector_type::scalar_type coalescedReadPermute(const vec & __restrict__ in,int doperm,int lane)
+{
+  typename vec::vector_type::scalar_type ret;
+  constexpr int mask = DATA_SIMD >> (ptype + 1); // Keep the permutes fixed as SIMD expanded
+#if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE)) && defined(RRII)
+  typedef typename vec::vector_type::word_type Float;
+  multi_ptr<Float,access::address_space::global_space> ptr((Float *)&in);
+  auto tmp = intel_sub_group().load<2,Float,access::address_space::global_space>(ptr);
+  if(doperm==true){
+    ret.z.x = intel_sub_group().shuffle_xor<Float>(tmp.x(),mask);
+    ret.z.y = intel_sub_group().shuffle_xor<Float>(tmp.y(),mask);
+  } else {
+    ret.z.x = tmp.x();
+    ret.z.y = tmp.y();
+  }
+#else
+  int plane= doperm ? lane ^ mask : lane;
+  ret.z.x = in.v.z.x[plane];
+  ret.z.y = in.v.z.y[plane];
+#endif
+  return ret;
+}
+#endif
