@@ -1,4 +1,83 @@
 
+template<class datum> struct wordsize {  };
+template<> struct wordsize<float>  { static const int bytes = sizeof(float) ; typedef float word_type; };
+template<> struct wordsize<double> { static const int bytes = sizeof(double); typedef double word_type; };
+
+//typedef half      vhalf   __attribute__ ((vector_size (GEN_SIMD_WIDTH)));
+
+template<class _datum> struct datum2 {
+  typedef _datum datum;
+  datum x;
+  datum y;
+};
+
+//typedef datum2<half>     half2;
+typedef datum2<float>   float2;
+typedef datum2<double> double2;
+
+template<class pair>
+class GpuComplex {
+public:
+  pair z;
+  typedef decltype(z.x) real;
+  typedef real value_type;
+public: 
+  GpuComplex() = default;
+  GpuComplex(real x,real y) { z.x=x; z.y=y; };
+  static const int N = sizeof(real)/(wordsize<real>::bytes);
+  typedef typename wordsize<real>::word_type word_type;
+  typedef GpuComplex<datum2<word_type> > scalar_type;
+  accelerator_inline GpuComplex(const GpuComplex &zz) { z = zz.z;};
+    
+  // *=,+=,-= operators
+  accelerator_inline GpuComplex &operator+=(const GpuComplex &r) {
+    *this = (*this) + r;
+    return *this;
+  }
+  accelerator_inline GpuComplex &operator-=(const GpuComplex &r) {
+    *this = (*this) - r;
+    return *this;
+  }
+  friend accelerator_inline  GpuComplex operator+(const GpuComplex &lhs,const GpuComplex &rhs) { 
+    GpuComplex r ; 
+    r.z.x = lhs.z.x + rhs.z.x; 
+    r.z.y = lhs.z.y + rhs.z.y; 
+    return r; 
+  }
+  friend accelerator_inline GpuComplex operator-(const GpuComplex &lhs,const GpuComplex &rhs) { 
+    GpuComplex r ; 
+    r.z.x = lhs.z.x - rhs.z.x; 
+    r.z.y = lhs.z.y - rhs.z.y; 
+    return r; 
+  }
+  friend accelerator_inline GpuComplex operator*(const GpuComplex &lhs,const GpuComplex &rhs) { 
+    GpuComplex r ; 
+    r.z.x= lhs.z.x*rhs.z.x - lhs.z.y*rhs.z.y; // rr-ii
+    r.z.y= lhs.z.x*rhs.z.y + lhs.z.y*rhs.z.x; // ri+ir
+    return r;
+  }
+  friend accelerator_inline GpuComplex real_mult(const GpuComplex &l,const GpuComplex &r) 
+  {
+    GpuComplex ret;
+    ret.z.x = l.z.x*r.z.x;
+    ret.z.y = l.z.x*r.z.y;
+    return ret;
+  }
+  friend accelerator_inline GpuComplex conj(const GpuComplex &l) 
+  {
+    GpuComplex ret;
+    ret.z.x = l.z.x;
+    ret.z.y =-l.z.y;
+    return ret;
+  }
+  friend std::ostream& operator<< (std::ostream& stream, const GpuComplex o){
+    for(int i=0;i<N;i++) {
+      //      stream << i<< " ("<< o.z.x[i] << ","<< o.z.y[i] <<")";
+    }
+    return stream;
+  }
+};
+
 template<int _N, class _datum>
 struct GpuVector {
   _datum v[_N];
@@ -40,13 +119,14 @@ accelerator_inline GpuVector<N,datum> operator/(const GpuVector<N,datum> l,const
   return ret;
 }
 
-typedef std::complex<float> GpuComplexF;
-typedef std::complex<double> GpuComplexD;
+//typedef std::complex<float> GpuComplexF;
+//typedef std::complex<double> GpuComplexD;
 
+typedef GpuComplex<float2> GpuComplexF;
+typedef GpuComplex<double2> GpuComplexD;
 
 constexpr int NSIMD_ComplexF = EXPAND_SIMD;
 constexpr int NSIMD_ComplexD = EXPAND_SIMD;
-
 
 typedef GpuVector<NSIMD_ComplexF, GpuComplexF > GpuVectorCF;
 typedef GpuVector<NSIMD_ComplexD, GpuComplexD > GpuVectorCD;
@@ -240,21 +320,22 @@ typedef GpuVector<NSIMD_ComplexD, GpuComplexD > GpuVectorCD;
     accelerator_inline GpuVectorCF operator()(GpuVectorCF a, GpuVectorCF b){
       GpuVectorCF ret;
       for(int i=0;i< GpuVectorCF::N;i++){
-	ret.v[i] = a.v[i] / b.v[i];
+	//	ret.v[i] = a.v[i] / b.v[i];
       }
       return ret;
     }
     accelerator_inline GpuVectorCD operator()(GpuVectorCD a, GpuVectorCD b){
       GpuVectorCD ret;
       for(int i=0;i< GpuVectorCD::N;i++){
-	ret.v[i] = a.v[i] / b.v[i];
+	//	ret.v[i] = a.v[i] / b.v[i];
       }
       return ret;
     }
   };
 
 
-  struct Conj{
+  struct Conj
+  {
     // Complex single
     accelerator_inline GpuVectorCF operator()(GpuVectorCF in){
       typedef GpuVectorCF vec;

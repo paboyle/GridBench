@@ -385,7 +385,7 @@ accelerator_inline Simd<S, V> timesMinusI(const Simd<S, V> &in) {
   return in;
 }
 
-#ifdef RRII
+#ifdef RRII 
 template <class pair>
 accelerator_inline GpuComplex<pair> timesMinusI( const GpuComplex<pair> &in) {
   GpuComplex<pair> ret;
@@ -396,6 +396,22 @@ template <class pair>
 accelerator_inline GpuComplex<pair> timesI( const GpuComplex<pair> &in) {
   GpuComplex<pair> ret;
   ret = binary<GpuComplex<pair> >(in, ret, TimesISIMD());
+  return ret;
+}
+#endif
+#ifdef RIRI
+template <class pair>
+accelerator_inline GpuComplex<pair> timesMinusI( const GpuComplex<pair> &in) {
+  GpuComplex<pair> ret;
+  ret.z.x = in.z.y;
+  ret.z.y =-in.z.x;
+  return ret;
+}
+template <class pair>
+accelerator_inline GpuComplex<pair> timesI( const GpuComplex<pair> &in) {
+  GpuComplex<pair> ret;
+  ret.z.x =-in.z.y;
+  ret.z.y = in.z.x;
   return ret;
 }
 #endif
