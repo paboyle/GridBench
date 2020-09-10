@@ -141,29 +141,4 @@ template<class T> using complex = std::complex<T>;
     return stream;
   }
 
-  inline std::ostream& operator<< (std::ostream& stream, const vRealF &o){
-    int nn=vRealF::Nsimd();
-    std::vector<RealF,alignedAllocator<RealF> > buf(nn);
-    vstore(o,&buf[0]);
-    stream<<"<";
-    for(int i=0;i<nn;i++){
-      stream<<buf[i];
-      if(i<nn-1) stream<<",";
-    }
-    stream<<">";
-    return stream;
-  }
-
-  inline std::ostream& operator<< (std::ostream& stream, const vRealD &o){
-    int nn=vRealD::Nsimd();
-    std::vector<RealD,alignedAllocator<RealD> > buf(nn);
-    vstore(o,&buf[0]);
-    stream<<"<";
-    for(int i=0;i<nn;i++){
-      stream<<buf[i];
-      if(i<nn-1) stream<<",";
-    }
-    stream<<">";
-    return stream;
-  }
 
