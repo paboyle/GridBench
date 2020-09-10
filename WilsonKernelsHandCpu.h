@@ -461,8 +461,11 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
   using namespace cl::sycl;
 
   const uint64_t    NN = nsite*Ls;
+
+  typedef typename SimdVec::vector_type::word_type Float;
   const uint64_t    Nsimd = SimdVec::Nsimd();
 
+  assert(Nsimd==sizeof(SimdVec)/sizeof(Float)/2);
   uint64_t begin=0;
   uint64_t end  =NN;
 
@@ -489,7 +492,7 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
   SimdVec * outsvm=(SimdVec *) malloc_shared(_fmax*sizeof(SimdVec),q);
   uint64_t* nbrsvm=(uint64_t *) malloc_shared(_nbrmax*sizeof(uint64_t),q);
   uint8_t * prmsvm=(uint8_t  *) malloc_shared(_nbrmax*sizeof(uint8_t),q);
-  std::cout << "SVM allocated arrays" <<std::endl;
+  std::cout << "SVM allocated arrays for SIMD "<<Nsimd <<std::endl;
   for(uint64_t n=0;n<_umax;n++) Usvm[n] = Up[n];
   for(uint64_t n=0;n<_fmax;n++) insvm[n] = inp[n];
   for(uint64_t n=0;n<_nbrmax;n++) nbrsvm[n] = nbrp[n];
@@ -524,7 +527,7 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 	//	cl::sycl::range<3> global{Nsimd,Ls,nsite};
 	//	cl::sycl::range<3> local {Nsimd,1,1};
 	cl::sycl::range<3> global{nsite,Ls,Nsimd};
-	cl::sycl::range<3> local {1,Ls,Nsimd};
+	cl::sycl::range<3> local {1,1,Nsimd};
 #else
 	//	cl::sycl::range<3> global{1,Ls,nsite};
 	//	cl::sycl::range<3> local {1,Ls,1};
@@ -533,7 +536,7 @@ double dslash_kernel_cpu(int nrep,SimdVec *Up,SimdVec *outp,SimdVec *inp,uint64_
 #endif
 	cgh.parallel_for<class dslash>(cl::sycl::nd_range<3>(global,local),
 				       [=] (cl::sycl::nd_item<3> item)
-				       [[cl::intel_reqd_sub_group_size(8)]]
+				       [[cl::intel_reqd_sub_group_size(sizeof(SimdVec)/sizeof(Float)/2)]]
 	{
  	    auto sg = item.get_sub_group();
 	  

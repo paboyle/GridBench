@@ -1,13 +1,13 @@
-#if 0
-typedef float     vfloat  __attribute__ ((vector_size (4*sizeof(float))));
-typedef double    vdouble __attribute__ ((vector_size (4*sizeof(double))));
-typedef Integer vinteger  __attribute__ ((vector_size (4*sizeof(uint32_t))));
-#else
 #include <CL/sycl.hpp>
 #include <CL/sycl/usm.hpp>
-typedef cl::sycl::vec<float,8> vfloat;
-typedef cl::sycl::vec<double,8> vdouble;
-typedef cl::sycl::vec<uint32_t,8> vinteger;
+#if 0
+typedef float     vfloat  __attribute__ ((vector_size (EXPAND_SIMD*sizeof(float))));
+typedef double    vdouble __attribute__ ((vector_size (EXPAND_SIMD*sizeof(double))));
+typedef Integer vinteger  __attribute__ ((vector_size (EXPAND_SIMD*sizeof(uint32_t))));
+#else
+typedef cl::sycl::vec<float,EXPAND_SIMD> vfloat;
+typedef cl::sycl::vec<double,EXPAND_SIMD> vdouble;
+typedef cl::sycl::vec<uint32_t,EXPAND_SIMD> vinteger;
 #endif
 
 template<class datum> struct wordsize {  };

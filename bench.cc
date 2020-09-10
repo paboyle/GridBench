@@ -1,4 +1,6 @@
-#define DOUBLE
+#define  DOUBLE
+#define DATA_SIMD 8  // Size in static data
+#define EXPAND_SIMD 8  // Size in static data
 
 // Invoke dslash.s - test for compiler-gsnerated code
 #include <stdio.h>
@@ -56,11 +58,12 @@ int main(int argc, char* argv[])
   ////////////////////////////////////////////////////////////////////
   // Option 2: copy from static arrays
   ////////////////////////////////////////////////////////////////////
-  uint64_t nreplica = 4;
-  uint64_t umax   = nsite*18*8 *vComplexD::Nsimd(); 
-  uint64_t fmax   = nsite*24*Ls*vComplexD::Nsimd(); 
+  uint64_t nreplica = 1;
   uint64_t nbrmax = nsite*Ls*8;
-  uint64_t vol    = nsite*Ls*vComplexD::Nsimd(); 
+
+  uint64_t umax   = nsite*18*8 *vComplexD::Nsimd();
+  uint64_t fmax   = nsite*24*Ls*vComplexD::Nsimd();
+  uint64_t vol    = nsite*Ls*vComplexD::Nsimd();
   
   printf("Nsimd %d\n",vComplexD::Nsimd());
 
@@ -78,8 +81,6 @@ int main(int argc, char* argv[])
     int n=replica*nbrmax;
     bcopy(U_static,&U[u],umax*sizeof(double));
     bzero(&Psi[f],fmax*sizeof(double));
-    bcopy(Phi_static,&Phi[f],fmax*sizeof(double));
-    bcopy(Psi_cpp_static,&Psi_cpp[f],fmax*sizeof(double));
     bcopy(nbr_static,&nbr[n],nbrmax*sizeof(uint64_t));
     bcopy(prm_static,&prm[n],nbrmax*sizeof(uint8_t));
     for(int nn=0;nn<nbrmax;nn++){
@@ -92,44 +93,54 @@ int main(int argc, char* argv[])
   Vector<float>   fPhi(fmax*nreplica);
   Vector<float>   fPsi_cpp(fmax*nreplica); 
 
+  assert(vComplexD::Nsimd()==EXPAND_SIMD);
+  assert(vComplexF::Nsimd()==EXPAND_SIMD);
+  const int Nsimd  = EXPAND_SIMD;
+  const int NNsimd = DATA_SIMD;
+  const int nsimd_replica=Nsimd/NNsimd;
+  std::cout << " Expanding SIMD width by "<<nsimd_replica<<"x"<<std::endl;
 #ifdef RRII
-  const int Nsimd = vComplexD::Nsimd();
+#define VEC_IDX(ri,n,nn) (ri*Nsimd+nn*NNsimd+n)
+#else
+#define VEC_IDX(ri,n,nn) (nn*NNsimd*2 + n*2 +ri)
+#endif
   for(uint32_t r=0;r<nreplica;r++){
   for(uint32_t ss=0;ss<nsite;ss++){
   for(uint32_t s=0;s<Ls;s++){
   for(uint32_t sc=0;sc<12;sc++){
-    for(uint32_t n=0;n<vComplexD::Nsimd();n++){
+    for(uint32_t n=0;n<NNsimd;n++){
+    for(uint32_t nn=0;nn<nsimd_replica;nn++){
       for(uint32_t ri=0;ri<2;ri++){
-	int idx = ss*Ls*24*Nsimd
-	        +     s*24*Nsimd
-    	        +      sc*2*Nsimd;
-	int ridx= idx+r*nsite*Ls*24*Nsimd;
-	Phi     [ridx + ri*Nsimd + n ] =     Phi_static[idx + n*2 + ri];
-	Psi_cpp [ridx + ri*Nsimd + n ] = Psi_cpp_static[idx + n*2 + ri];
-	fPhi    [ridx + ri*Nsimd + n ] =     Phi_static[idx + n*2 + ri];
-	fPsi_cpp[ridx + ri*Nsimd + n ] = Psi_cpp_static[idx + n*2 + ri];
+	int idx = ss*Ls*24*NNsimd
+	        +     s*24*NNsimd
+    	        +     sc*2*NNsimd;
+	int ridx= idx*nsimd_replica+r*nsite*Ls*24*Nsimd;
+	Phi     [ridx + VEC_IDX(ri,n,nn) ] =     Phi_static[idx + n*2 + ri];
+	Psi_cpp [ridx + VEC_IDX(ri,n,nn) ] = Psi_cpp_static[idx + n*2 + ri];
+	fPhi    [ridx + VEC_IDX(ri,n,nn) ] =     Phi_static[idx + n*2 + ri];
+	fPsi_cpp[ridx + VEC_IDX(ri,n,nn) ] = Psi_cpp_static[idx + n*2 + ri];
       }
-    }
+    }}
   }}}}
   std::cout << "Remapped Spinor data\n" ;
   for(uint32_t r=0;r<nreplica;r++){
   for(uint32_t ss=0;ss<nsite*9*8;ss++){
-    for(uint32_t n=0;n<vComplexD::Nsimd();n++){
+    for(uint32_t n=0;n<NNsimd;n++){
+    for(uint32_t nn=0;nn<nsimd_replica;nn++){
       for(uint32_t ri=0;ri<2;ri++){
-	U [r*Nsimd*2*nsite*9*8+ss*Nsimd*2 + ri*Nsimd + n ] = U_static[ss*Nsimd*2 + n*2 + ri];
-	fU[r*Nsimd*2*nsite*9*8+ss*Nsimd*2 + ri*Nsimd + n ] = U_static[ss*Nsimd*2 + n*2 + ri];
+	U [r*Nsimd*2*nsite*9*8+ss*Nsimd*2 + VEC_IDX(ri,n,nn) ] = U_static[ss*NNsimd*2 + n*2 + ri];
+	fU[r*Nsimd*2*nsite*9*8+ss*Nsimd*2 + VEC_IDX(ri,n,nn) ] = U_static[ss*NNsimd*2 + n*2 + ri];
       }
-    }
+    }}
   }}
   std::cout << "Remapped Gauge data\n";
-#endif
   
   std::cout << std::endl;
   std::cout << "Calling dslash_kernel "<<std::endl;
 
 
   double flops = 1320.0*vol*nreplica;
-  int nrep=10; // cache warm
+  int nrep=1000; // cache warm
 #ifdef DOUBLE
   double usec = dslash_kernel<vComplexD>(nrep,
 			   (vComplexD *)&U[0],
@@ -178,7 +189,7 @@ int main(int argc, char* argv[])
       nref += Psi_cpp[i]*Psi_cpp[i];
     };
     std::cout<< "normdiff "<< err<< " ref "<<nref<<" result "<<nres<<std::endl;
-    for(int ii=0;ii<20;ii++){
+    for(int ii=0;ii<64;ii++){
       uint64_t i=ii+r*fmax;
       std::cout<< i<<" ref "<<Psi_cpp[i]<< " result "<< Psi[i]<<std::endl;
     }

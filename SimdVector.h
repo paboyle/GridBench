@@ -75,7 +75,7 @@ template<int ptype,class vec>
 typename vec::vector_type::scalar_type coalescedReadPermute(const vec & __restrict__ in,int doperm,int lane)
 {
   typename vec::vector_type::scalar_type ret;
-  constexpr int mask = vec::Nsimd() >> (ptype + 1);		
+  constexpr int mask = DATA_SIMD >> (ptype + 1); // Keep the permutes fixed as SIMD expanded
 #if defined(__SYCL_DEVICE_ONLY__) && (!defined(DOUBLE))
   typedef typename vec::vector_type::word_type Float;
   multi_ptr<Float,access::address_space::global_space> ptr((Float *)&in);
