@@ -50,11 +50,14 @@
 #include "arch/gen64/static_data.h"
 #endif
 
+#ifdef RIRI
+#include "arch/gen64/static_data.h"
+#endif
+
 
 #define  FMT std::dec
 int main(int argc, char* argv[])
 {
-
   ////////////////////////////////////////////////////////////////////
   // Option 2: copy from static arrays
   ////////////////////////////////////////////////////////////////////
