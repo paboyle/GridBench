@@ -1,6 +1,11 @@
-#pragma once
 #include <stdio.h>
 
+#pragma once
+
+#ifdef GRID_SYCL
+#include <CL/sycl.hpp>
+#include <CL/sycl/usm.hpp>
+#endif
 
 #ifdef GRID_SYCL_SIMT
 //#define synchronise(A) item.barrier(cl::sycl::access::fence_space::local_space);

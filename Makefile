@@ -23,6 +23,7 @@ AVX2_DATA     := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 AVX_DATA      := arch/avx/static_data_gauge.cc arch/avx/static_data_fermion.cc
 SSE_DATA      := arch/sse/static_data.cc
 RRII_DATA     := arch/gen64/static_data.cc
+RIRI_DATA     := arch/gen64/static_data.cc
 
 #############################################
 # Intel
@@ -41,6 +42,7 @@ AVX2_CXXFLAGS    := -DAVX2  -mavx2 -mfma $(OMP)
 AVX_CXXFLAGS     := -DAVX1  -mavx $(OMP)
 SSE_CXXFLAGS     := -DSSE4  -msse4.2  $(OMP)
 RRII_CXXFLAGS     := -DRRII  -mavx2 -mfma  $(OMP) -DGEN_SIMD_WIDTH=64
+RIRI_CXXFLAGS     := -DRIRI  -mavx2 -mfma  $(OMP) -DGEN_SIMD_WIDTH=64 -g
 
 #############################################
 # G++
@@ -74,7 +76,7 @@ LDLIBS    := -lm
 LDFLAGS   := 
 
 all: bench.avx512 bench.avx2 bench.avx bench.sse bench.gen bench.simple bench.sycl \
-	bench.rrii.omp.cpu bench.rrii.sycl.cpu bench.rrii.sycl.cpu.simt  bench.rrii.sycl.gpu bench.rrii.sycl.gpu.simt
+	bench.rrii.omp.cpu bench.rrii.sycl.cpu bench.rrii.sycl.cpu.simt  bench.rrii.sycl.gpu bench.rrii.sycl.gpu.simt bench.riri.sycl.gpu.simt
 
 bench.avx512: bench.cc $(AVX512_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX512_CXXFLAGS) bench.cc $(AVX512_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx512
@@ -96,6 +98,12 @@ bench.rrii.sycl.gpu: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
 
 bench.rrii.sycl.gpu.simt: bench.cc $(RRII_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(RRII_CXXFLAGS) bench.cc $(RRII_DATA) $(LDLIBS) $(LDFLAGS) -o bench.rrii.sycl.gpu.simt -DGRID_SYCL -DGRID_SYCL_SIMT -DGRID_SYCL_GPU
+
+bench.riri.sycl.gpu.simt: bench.cc $(RIRI_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RIRI_CXXFLAGS) bench.cc $(RIRI_DATA) $(LDLIBS) $(LDFLAGS) -o bench.riri.sycl.gpu.simt -DGRID_SYCL -DGRID_SYCL_SIMT -DGRID_SYCL_GPU
+
+bench.riri.sycl.cpu.simt: bench.cc $(RIRI_DATA)  WilsonKernelsHand.h Makefile
+	$(CXX) $(RIRI_CXXFLAGS) bench.cc $(RIRI_DATA) $(LDLIBS) $(LDFLAGS) -o bench.riri.sycl.cpu.simt -DGRID_SYCL -DGRID_SYCL_SIMT 
 
 bench.avx: bench.cc $(AVX_DATA)  WilsonKernelsHand.h Makefile
 	$(CXX) $(AVX_CXXFLAGS) bench.cc $(AVX_DATA) $(LDLIBS) $(LDFLAGS) -o bench.avx
